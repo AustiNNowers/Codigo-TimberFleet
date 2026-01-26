@@ -1,0 +1,59 @@
+{
+  "TF_API_BaseUrl": "https://multifleet.ponsse.com/api/v1/",
+  "TF_Token_Url": "https://multifleet.ponsse.com/oauth/token",
+  "PHP_API_Url": "https://valedotibagi.com.br/conect-api/TimberFleetPhp.php",
+  "TF_API_Header": {
+    "authorization": "Bearer ",
+    "cache-control": "no-cache"
+  },
+  "TF_Token_header": {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  "PHP_header": {
+    "Content-Type": "application/json; charset=utf-8"
+  },
+  "Credenciais": {
+    "grant_type": "password",
+    "username": "integracao.ti@valedotibagi.com.br",
+    "password": "Ctower22**",
+    "client_id": "valetibagi",
+    "client_secret": "b81ce37b19f23713426dd3c03d4e1bfa"
+  },
+  "Informacoes_Token": {
+    "Token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJ2YWxldGliYWdpIiwianRpIjoiZmRjZTZkMTM5MjFmZTQxMWM3MmQ1M2FhYTZkYjg5MmNlZTY4YTU5NmUyOWUwODJkOGY3NGEwNWY3NGZhMzJlNjBmZTZiYWU5NjA1YjVkZDciLCJpYXQiOjE3NjcxMTMzMjYuNDA0OTUyLCJuYmYiOjE3NjcxMTMzMjYuNDA0OTU1LCJleHAiOjE3NjcxOTk3MjYuMzk3NDA4LCJzdWIiOiIyNzQ0Iiwic2NvcGVzIjpbXX0.JDS7uimDho0PbGQxqh0iCnJEAG0T_PYZE8X8J9RUnvsQw7ZCfFTsvshvc7owXJKMmBMLgtfY-dzVs5xe9WljuM82r5947TsEAodVH2609jWutF0wcY0XxTF7EEKRzJEV4wJfisPnagLhVlZ6MXQoRHt4YX96I0dNLLEo-S6OBktawiVdHvJjXFw1Z0O7Wx0HWv9wNOkD3eMqsV8DNnwLFzgV0VLv8qeJjt3dongrMtahRaGXAbnjtGu0eIRZNStditi-mFc-5OqwN-tdkFW0W5mrFPvlvvO6Igi0utDZqeFiBvMMmhlpnF5hrsIOQDwRIn75aFtu3IddcrUT6TtoZD8YI7X1NHmYWKKNGJ3JLd_jJ-0kD_zw4eI4MyRhSZTHxszGgHvHvNlWmZNtY5dogiDODQB2Ah2NqFbFg_NRH-V3PWRxEUsFRhQ-Ff1xxyuu8SZQegdYGEs8TKmN6DuUQSb4aVVeVnCwzqurjYxz_WsP7idQ5cFVjfEp8Rsp5xXPK9tXaI4krtpRSaPVYLj1RYbW6XDAP7h_BvHX1VaNLx7mZ6nOeKwDUISimDtREzmt-1babJAdNeRoDk7zHhXuU0MW_hi446W4leoAiLiwS90vHF1K9YH6b3-2DJ26sSW8s3LanGgWVO2RZc8-tbUE1ZkIosJtKPVBBszkD1uf4v0",
+    "Data_Gerada": "30/12/2025 13:48:46",
+    "Data_Expiracao": "31/12/2025 12:48:46"
+  },
+  "Tabelas": {
+    "Apontamento": {
+      "Nome_Tabela": "TimberFleet_Apontamentos",
+      "Url_Final": "notes?",
+      "UltimaAtualizacao": "2025-01-01T00:00:00.0000000\u002B00:00",
+      "TabelaAtiva": true
+    },
+    "Producao": {
+      "Nome_Tabela": "TimberFleet_Producao",
+      "Url_Final": "new_production?",
+      "UltimaAtualizacao": "2025-12-30T15:50:03.0000000\u002B00:00",
+      "TabelaAtiva": false
+    },
+    "Contadores": {
+      "Nome_Tabela": "TimberFleet_Contadores",
+      "Url_Final": "counters?",
+      "UltimaAtualizacao": "2025-12-20T06:44:09.0000000\u002B00:00",
+      "TabelaAtiva": false
+    },
+    "Localizacao": {
+      "Nome_Tabela": "TimberFleet_Localizacao",
+      "Url_Final": "points?",
+      "UltimaAtualizacao": "2025-01-01T00:00:00.0000000\u002B00:00",
+      "TabelaAtiva": false
+    },
+    "Produto": {
+      "Nome_Tabela": "TimberFleet_Produtos",
+      "Url_Final": "new_production_products?",
+      "UltimaAtualizacao": "2025-08-20T04:31:05.0000000\u002B00:00",
+      "TabelaAtiva": false
+    }
+  }
+}
