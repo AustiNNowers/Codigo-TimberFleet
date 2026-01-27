@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
-using TF.src.Infra.Modelo;
 
 namespace TF.src.Infra.Processamento
 {

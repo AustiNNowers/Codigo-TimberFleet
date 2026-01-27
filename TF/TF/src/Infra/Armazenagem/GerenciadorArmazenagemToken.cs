@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using TF.src.Infra.Autenticacao;
-
 namespace TF.src.Infra.Armazenagem
 {
     public class GerenciadorArmazenagemToken(IArmazenagemToken memoria, IArmazenagemToken json) : IArmazenagemToken

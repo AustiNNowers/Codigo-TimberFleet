@@ -1,13 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using System.Net;
 using System.Security.Cryptography;
-using System.Security.Principal;
 using System.Diagnostics;
-using TF.src.Infra.Logging;
 
 namespace TF.src.Infra.Politica
 {
@@ -44,8 +38,6 @@ namespace TF.src.Infra.Politica
 
                     var tipoResposta = resposta.GetType();
 
-                    //if (resposta.GetType().GetGenericTypeDefinition() != typeof(List<>) && resposta.Content is null) return resposta;
-
                     if ((int)resposta.StatusCode >= 500 || resposta.StatusCode == HttpStatusCode.TooManyRequests)
                     {
                         var body = await resposta.Content.ReadAsStringAsync();
@@ -80,7 +72,6 @@ namespace TF.src.Infra.Politica
 
         private static TimeSpan CalcularAtraso(TimeSpan baseDelay, int tentativa, Random rnd)
         {
-            // backoff exponencial + jitter (0–250ms)
             var fator = Math.Pow(2, tentativa - 1);
             var jitter = TimeSpan.FromMilliseconds(rnd.Next(0, 250));
             var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * fator) + jitter;

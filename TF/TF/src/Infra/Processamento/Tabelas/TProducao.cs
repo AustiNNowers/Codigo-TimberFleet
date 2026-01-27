@@ -1,11 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-using TF.src.Infra.Modelo;
-using static TF.src.Infra.Processamento.Utilidades;
-
 namespace TF.src.Infra.Processamento.Tabelas
 {
     public static class TProducao

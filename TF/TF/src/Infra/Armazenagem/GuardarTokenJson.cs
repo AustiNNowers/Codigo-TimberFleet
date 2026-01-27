@@ -1,11 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Threading.Tasks;
-using Microsoft.VisualBasic;
-using TF.src.Infra.Autenticacao;
 
 namespace TF.src.Infra.Armazenagem
 {
@@ -64,7 +58,7 @@ namespace TF.src.Infra.Armazenagem
 
                 informacoes["Token"] = token.Token;
                 informacoes["Data_Gerada"] = token.Expiracao;
-                informacoes["Data_Expiracao"] = DateTime.ParseExact(token.Expiracao, "dd/MM/yyyy HH:mm:ss", null).AddDays(1).AddHours(-1).ToString();
+                informacoes["Data_Expiracao"] = DateTime.ParseExact(token.Expiracao, "dd/MM/yyyy HH:mm:ss", null).ToString();
 
                 var atualizacao = root.ToJsonString(_opcoes);
                 await File.WriteAllTextAsync(_caminho, atualizacao, comando);

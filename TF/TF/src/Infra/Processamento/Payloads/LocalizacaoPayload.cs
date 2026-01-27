@@ -1,7 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
-using TF.src.Infra.Modelo;
-using static TF.src.Infra.Processamento.Payloads.PayloadsUtilitario;
 
 namespace TF.src.Infra.Processamento.Payloads
 {

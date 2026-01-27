@@ -1,4 +1,3 @@
-
 namespace TF.src.Infra.Armazenagem
 {
     public interface IGuardarDados

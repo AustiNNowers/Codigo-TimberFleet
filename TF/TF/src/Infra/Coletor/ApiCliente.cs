@@ -1,17 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Text.Json;
-using System.Threading.Tasks;
-
-using TF.src.Infra.Autenticacao;
-using TF.src.Infra.Logging;
-using TF.src.Infra.Modelo;
-using TF.src.Infra.Politica;
-using TF.src.Infra.Processamento;
 
 namespace TF.src.Infra.Coletor
 {
@@ -87,7 +76,6 @@ namespace TF.src.Infra.Coletor
                 var resposta = await PoliticaRetentativa.ExecutarNovamenteRequisicao(
                     _http, criarRequisicao, tentativasMaxima: 5, atrasoBase: TimeSpan.FromMilliseconds(500), timeoutPorTentativa: TimeSpan.FromSeconds(300), comando: comando, logDebug: s => _log.Aviso(s));
 
-                //if (resposta.GetType().GetGenericTypeDefinition() != typeof(List<>) && resposta.Content is null) continue;
 
                 if (resposta.StatusCode == HttpStatusCode.Unauthorized)
                 {
@@ -252,7 +240,3 @@ namespace TF.src.Infra.Coletor
         }
     }
 }
-
-// _urlBase = https://multifleet.ponsse.com/api/v1/
-// urlFinal = notes?
-// Exemplo = https://multifleet.ponsse.com/api/v1/notes?start_date=2025-01-01+00%3A00%3A00&end_date=2025-01-01+23%3A59%3A59

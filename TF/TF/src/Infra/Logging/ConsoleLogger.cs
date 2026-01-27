@@ -1,7 +1,3 @@
-using System;
-using System.IO;
-using System.Text;
-
 namespace TF.src.Infra.Logging
 {
     public class ConsoleLogger : IConsoleLogger

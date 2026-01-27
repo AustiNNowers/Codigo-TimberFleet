@@ -1,7 +1,5 @@
 using System.Security.Cryptography;
 
-using TF.src.Infra.ValidacaoArquivos;
-
 var comando = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {

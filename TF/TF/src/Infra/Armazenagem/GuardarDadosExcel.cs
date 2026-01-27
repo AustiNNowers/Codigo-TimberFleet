@@ -1,9 +1,6 @@
-// topo do arquivo onde você vai usar
-using ClosedXML.Excel;
 using System.Globalization;
 using System.Text.Json;
 
-// lock pra concorrência entre tabelas/threads
 namespace TF.src.Infra.Armazenagem
 {
     public static class GuardarDadosExcel
@@ -12,13 +9,12 @@ namespace TF.src.Infra.Armazenagem
 
         public static async Task AppendXlsxEnvelopesAsync(
             string caminhoXlsx,
-            string tabelaChave,                                        // ex.: "Contadores"
-            IEnumerable<Dictionary<string, object?>> envelopes,       // { "tabela", "dados" }
+            string tabelaChave,
+            IEnumerable<Dictionary<string, object?>> envelopes,
             CancellationToken ct)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(caminhoXlsx)!);
 
-            // materializa pq vamos iterar mais de uma vez se precisar
             var list = envelopes is IList<Dictionary<string, object?>> l ? l : envelopes.ToList();
             if (list.Count == 0) return;
 
@@ -27,19 +23,15 @@ namespace TF.src.Infra.Armazenagem
             {
                 using var wb = File.Exists(caminhoXlsx) ? new XLWorkbook(caminhoXlsx) : new XLWorkbook();
 
-                // Uma planilha por tabela (facilita abrir no Excel)
                 var ws = wb.Worksheets.FirstOrDefault(w => w.Name.Equals(tabelaChave, StringComparison.OrdinalIgnoreCase))
                         ?? wb.Worksheets.Add(tabelaChave);
 
-                // Cabeçalhos dinâmicos:
-                // Começamos com um conjunto base e depois expandimos com as chaves de "dados"
-                var headers = ReadHeaders(ws); // Dictionary<string,int> nome->coluna
+                var headers = ReadHeaders(ws);
                 EnsureHeader(ws, headers, "utc_datetime");
                 EnsureHeader(ws, headers, "tabela");
                 EnsureHeader(ws, headers, "id_ident");
                 EnsureHeader(ws, headers, "data_registro");
 
-                // Primeiro passamos coletando novas chaves que surgirem em "dados"
                 var extraKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var env in list)
                 {
@@ -52,7 +44,6 @@ namespace TF.src.Infra.Armazenagem
                 }
                 foreach (var k in extraKeys) EnsureHeader(ws, headers, k);
 
-                // Grava as linhas
                 var nextRow = (ws.LastRowUsed()?.RowNumber() ?? 1) + 1;
                 foreach (var env in list)
                 {
@@ -68,7 +59,6 @@ namespace TF.src.Infra.Armazenagem
                         id = "(sem_id_ident)";
                     ws.Cell(nextRow, headers["id_ident"]).Value = id;
 
-                    // data_registro pode vir string: tenta parse pra datas no Excel
                     var dr = GetString(dados, "data_registro");
                     if (DateTimeOffset.TryParse(dr, CultureInfo.InvariantCulture,
                             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dto))
@@ -81,7 +71,6 @@ namespace TF.src.Infra.Armazenagem
                         ws.Cell(nextRow, headers["data_registro"]).Value = dr;
                     }
 
-                    // Demais campos dinâmicos
                     foreach (var (k, v) in dados)
                     {
                         if (!headers.TryGetValue(k, out var col)) continue;
@@ -91,7 +80,6 @@ namespace TF.src.Infra.Armazenagem
                     nextRow++;
                 }
 
-                // Embelezar levemente no primeiro header
                 if (ws.LastRowUsed()?.RowNumber() == 2)
                 {
                     ws.Row(1).Style.Font.Bold = true;
@@ -102,8 +90,6 @@ namespace TF.src.Infra.Armazenagem
             }
             finally { _xlsxLockDados.Release(); }
         }
-
-        // --------- utilitários para o helper acima ---------
 
         static Dictionary<string, int> ReadHeaders(IXLWorksheet ws)
         {
@@ -157,7 +143,6 @@ namespace TF.src.Infra.Armazenagem
             switch (v)
             {
                 case string s:
-                    // tenta número / data rápido, senão joga como string
                     if (double.TryParse(s.Replace(".", "").Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var dnum))
                         ws.Cell(row, col).Value = dnum;
                     else if (DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture,
@@ -186,7 +171,6 @@ namespace TF.src.Infra.Armazenagem
                     break;
 
                 case Dictionary<string, object?> nested:
-                    // se vier algo aninhado, grava JSON bruto
                     ws.Cell(row, col).Value = JsonSerializer.Serialize(nested);
                     break;
 

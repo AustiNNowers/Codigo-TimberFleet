@@ -1,14 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Net.Mime;
 using System.Text.Json;
-using System.Threading.Tasks;
-
-using TF.src.Infra.Configuracoes;
-using TF.src.Infra.Logging;
-using TF.src.Infra.Politica;
 
 namespace TF.src.Infra.Autenticacao
 {

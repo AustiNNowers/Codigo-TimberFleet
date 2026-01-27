@@ -1,8 +1,3 @@
-using System.Globalization;
-using System.Text.Json;
-using TF.src.Infra.Modelo;
-using static TF.src.Infra.Processamento.Payloads.PayloadsUtilitario;
-
 namespace TF.src.Infra.Processamento.Payloads
 {
     public static class ContadoresPayload
@@ -25,13 +20,11 @@ namespace TF.src.Infra.Processamento.Payloads
                 ["data_contadores"] = FmtDate(equipDate),
                 ["operacao_status"] = status,
 
-                // já divididos no seu transformer
                 ["odometro_motor"]        = GetDouble(ex, "odometer_motor")?.Round(2),
                 ["odometro_operacao"]     = GetDouble(ex, "odometer_operation")?.Round(2),
                 ["odometro_implemento"]   = GetDouble(ex, "odometer_implement")?.Round(2),
                 ["odometro_rodante"]      = GetDouble(ex, "odometer_travel")?.Round(2),
 
-                // mapeamento conforme seu Python
                 ["horimetro_operacao"]    = GetDouble(ex, "engine_hourmeter"),
                 ["horimetro_motor"]       = GetDouble(ex, "operation_hourmeter"),
                 ["horimetro_implemento"]  = GetDouble(ex, "implement_hourmeter"),

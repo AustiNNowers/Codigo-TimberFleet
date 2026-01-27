@@ -1,8 +1,3 @@
-using System.Globalization;
-using System.Text.Json;
-using TF.src.Infra.Modelo;
-using static TF.src.Infra.Processamento.Payloads.PayloadsUtilitario;
-
 namespace TF.src.Infra.Processamento.Payloads
 {
     public static class ApontamentosPayload
@@ -33,7 +28,6 @@ namespace TF.src.Infra.Processamento.Payloads
                 ["operacao_status"] = status,
                 ["titulo_formulario"] = formTitle,
 
-                // campos compartilhados
                 ["matricula_operador"] = GetStr(ex, "matricula_operador"),
                 ["matricula_comboista"] = GetStr(ex, "matricula_comboista"),
                 ["matricula_mecanico"] = GetStr(ex, "matricula_mecanico"),

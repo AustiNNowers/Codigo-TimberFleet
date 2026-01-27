@@ -1,5 +1,3 @@
-using TF.src.Infra.Modelo;
-
 namespace TF.src.Infra.Processamento.Payloads
 {
     public static class PayloadConstrutor

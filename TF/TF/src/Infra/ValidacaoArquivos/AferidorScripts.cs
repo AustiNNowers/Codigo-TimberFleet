@@ -1,17 +1,6 @@
 using System.Net;
 using System.Net.Security;
 
-using TF.src.Infra.App;
-using TF.src.Infra.App.Agendadores;
-using TF.src.Infra.Armazenagem;
-using TF.src.Infra.Autenticacao;
-using TF.src.Infra.Coletor;
-using TF.src.Infra.Configuracoes;
-using TF.src.Infra.Logging;
-using TF.src.Infra.Lote;
-using TF.src.Infra.Processamento;
-using TF.src.Infra.Upload;
-
 namespace TF.src.Infra.ValidacaoArquivos;
 
 public class CarregarScripts
