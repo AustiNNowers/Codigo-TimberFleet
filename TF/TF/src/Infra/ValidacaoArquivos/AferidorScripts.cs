@@ -24,6 +24,17 @@ public class CarregarScripts
     public required IUploader Uploader { get; init; }
     public required IAgendadorTabela Agendador { get; init; }
     public required CanalExecucao CanalExecucao { get; init; }
+
+    private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        try { HttpApi.Dispose(); } catch { }
+        try { HttpUpload.Dispose(); } catch { }
+    }
 }
 
 public static class Aferidor
@@ -49,29 +60,32 @@ public static class Aferidor
         var handler = new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-            PooledConnectionLifetime = Timeout.InfiniteTimeSpan,
-            MaxConnectionsPerServer = 16,
+            PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+            MaxConnectionsPerServer = Math.Max(20, (paralelos ?? 1) * 2),
             ConnectTimeout = TimeSpan.FromSeconds(16),
             AllowAutoRedirect = false,
+
+            KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+            KeepAlivePingTimeout = TimeSpan.FromSeconds(5),
+
             SslOptions = new SslClientAuthenticationOptions
             {
                 RemoteCertificateValidationCallback = delegate { return true; }
-                
             }
         };
 
         var httpToken = new HttpClient(handler, disposeHandler: false) {
-            Timeout = Timeout.InfiniteTimeSpan,
+            Timeout = TimeSpan.FromMinutes(10),
             DefaultRequestVersion = HttpVersion.Version20,
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         };
         var httpApi = new HttpClient(handler, disposeHandler: false) {
-            Timeout = Timeout.InfiniteTimeSpan,
+            Timeout = TimeSpan.FromMinutes(10),
             DefaultRequestVersion = HttpVersion.Version11,
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher            
         };
         var httpUpload = new HttpClient(handler, disposeHandler: false) {
-            Timeout = Timeout.InfiniteTimeSpan,
+            Timeout = TimeSpan.FromMinutes(10),
             DefaultRequestVersion = HttpVersion.Version20,
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
         };
@@ -99,7 +113,7 @@ public static class Aferidor
             ParseDatasString = true
         });
 
-        var transformar = new TransformarDados(limpador, logger, Environment.ProcessorCount - 1, comando);
+        var transformar = new TransformarDados(limpador, logger, Math.Max(1, Environment.ProcessorCount - 1), comando);
 
         var loteador = new Loteador(maximoLinhas: 5000, maximoBytes: 2 * 1024 * 1024);
 

@@ -1,12 +1,3 @@
-using TF.src.Infra.App.Agendadores;
-using TF.src.Infra.Armazenagem;
-using TF.src.Infra.Coletor;
-using TF.src.Infra.Configuracoes;
-using TF.src.Infra.Logging;
-using TF.src.Infra.Lote;
-using TF.src.Infra.Processamento;
-using TF.src.Infra.Upload;
-
 namespace TF.src.Infra.App
 {
     public class CanalExecucao(
@@ -23,6 +14,8 @@ namespace TF.src.Infra.App
         private readonly IUploader _uploader = uploader;
         private readonly IConsoleLogger _log = log;
         private readonly IAgendadorTabela _agendador = agendador;
+
+        private const int _TAMANHO_LOTE = 3000;
         
         public async Task Executar(CancellationToken comando = default)
         {
@@ -36,6 +29,8 @@ namespace TF.src.Infra.App
             _log.Info($"[CanalExecucao] Iniciando {configuracao.Tabelas.Count} tabelas(s)...");
 
             var trabalhos = new List<Func<CancellationToken, Task>>(configuracao.Tabelas.Count);
+            var erros = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
             foreach (var kv in configuracao.Tabelas)
             {
                 var tabelaChave = kv.Key;
@@ -60,18 +55,30 @@ namespace TF.src.Infra.App
                             _loteador,
                             _uploader,
                             _log,
-                            3000);
+                            _TAMANHO_LOTE);
                         await trabalho.Executar(comando);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
                     }
                     catch (Exception ex)
                     {
-                        _log.Erro($"[CanalExecucao]: {tabelaChave} | Falhou ao tentar criar TrabalhoTabela: {ex.Message}");
+                        _log.Erro($"[CanalExecucao]: {tabelaChave} | Falhou ao tentar processar a tabela: {ex.ToString()}");
+
+                        erros.Add(new Exception($"Tabela '{tabelaChave}' falhou", ex));
                     }
                 });
             }
 
             await _agendador.Executar(trabalhos, comando);
-            _log.Info("[CanalExecucao] Todas as tabelas foram processadas");
+
+            if (!erros.IsEmpty)
+            {
+                throw new AggregateException("[CanalExecucao] Uma ou mais tabelas falharam", erros);
+            }
+
+            _log.Info("[CanalExecucao] Todas as tabelas foram processadas com sucesso");
         }
     }
 }

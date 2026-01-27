@@ -9,13 +9,8 @@ Console.CancelKeyPress += (_, e) =>
     Console.WriteLine("Cancelamento foi solicitado (Ctrl+C). Encerrando com segurança...");
 };
 
-string CaminhoConfiguracoesJson()
-{
-    var caminho = Path.Combine(Directory.GetCurrentDirectory(), "configuracoes.json");
-    if (File.Exists(caminho)) return caminho;
-
-    return caminho;
-}
+string CaminhoConfiguracoesJson() =>
+    Path.Combine(Directory.GetCurrentDirectory(), "configuracoes.json");
 
 int QuantidadeParalelos()
 {
@@ -59,8 +54,6 @@ Console.WriteLine($"Config: {caminho}");
 Console.WriteLine($"DOP   : {paralelos}");
 Console.WriteLine("Pressione Ctrl+C para cancelar.");
 Console.WriteLine();
-
-CarregarScripts? scripts = null;
 
 try
 {
@@ -127,9 +120,5 @@ catch (Exception ex)
 }
 finally
 {
-    if (scripts is not null)
-    {
-        try { scripts.HttpApi.Dispose(); } catch { }
-        try { scripts.HttpUpload.Dispose(); } catch { }
-    }
+    
 }

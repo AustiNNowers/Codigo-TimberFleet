@@ -1,14 +1,6 @@
 using System.Globalization;
 
-using TF.src.Infra.Armazenagem;
-using TF.src.Infra.Coletor;
-using TF.src.Infra.Configuracoes;
-using TF.src.Infra.Logging;
-using TF.src.Infra.Lote;
-using TF.src.Infra.Modelo;
-using TF.src.Infra.Processamento;
-using TF.src.Infra.Processamento.Payloads;
-using TF.src.Infra.Upload;
+using TF.src.Infra.Processamento.Utilidades;
 
 namespace TF.src.Infra.App
 {
@@ -34,26 +26,32 @@ namespace TF.src.Infra.App
             _log.Info($"[Trabalho Atual: {_tabelaChave}] Iniciando...");
 
             string? cursorIso = await _guardarDados.ObterDados(_tabelaChave, comando);
-            if (string.IsNullOrWhiteSpace(cursorIso))
+            DateTime cursorData;
+
+            if (string.IsNullOrWhiteSpace(cursorIso) || !Utilidades.TentarPegarData(cursorIso, out cursorData))
             {
-                cursorIso = _config.UltimaAtualizacao;
-                _log.Info($"[Trabalho atual: {_tabelaChave}] Cursor ausente no IGuardarDados | Utilizando o config.UltimaAtualizacao = '{cursorIso}'.");
+                if (!string.IsNullOrWhiteSpace(_config.UltimaAtualizacao) && Utilidades.TentarPegarData(_config.UltimaAtualizacao, out var configData))
+                {
+                    cursorData = configData;
+                    _log.Info($"[Trabalho atual: {_tabelaChave}] Usando cursor da config: '{cursorData:O}'.");
+                }
+                else
+                {
+                    cursorData = DateTime.UtcNow.AddDays(-3);
+                    _log.Aviso($"[Trabalho: {_tabelaChave}] Sem cursor válido. Usando fallback: {cursorData:O}.");
+                }
             }
 
-            if (!Utilidades.TentarPegarData(cursorIso, out var data))
-            {
-                data = DateTimeOffset.UtcNow.AddDays(-3);
-                _log.Aviso($"[Trabalho Atual: {_tabelaChave}] Cursor inválido ('{cursorIso}') | Utilizando um fallback {data:O}.");
-            }
+            _log.Info($"[Trabalho Atual: {_tabelaChave}] Janela de busca de dados: {data} > {DateTime.Now}");
 
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] Janela de busca de dados: {data} > {DateTimeOffset.UtcNow}");
+            var bufferLinhas = new List<ApiLinha>(_bufferLinhasPre);
 
-            var bufferLinhas = new List<ApiLinha>(_bufferLinhasPre * 2);
-            string? maiorIsoVista = cursorIso;
+            DateTime maiorIsoVista = cursorData;
 
             int totalLinhas = 0, totalLotes = 0;
 
             _log.Info($"[Trabalho Atual: {_tabelaChave}] Iniciando ColetaDados...");
+            
             await foreach (var linha in _coletor.ColetarDados(
                 _config.UrlFinal,
                 data,
