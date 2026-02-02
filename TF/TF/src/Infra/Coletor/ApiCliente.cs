@@ -26,14 +26,15 @@ namespace TF.src.Infra.Coletor
             CommentHandling = JsonCommentHandling.Skip
         };
 
+        private static readonly string[] _candidatosData = ["updated_at", "updatedAt", "equip_date", "final_date", "start_date", "date", "data"];
+
         private readonly TimeSpan _tamanhoJanelaBuscaHMS = TimeSpan.FromHours(23) + TimeSpan.FromMinutes(59) + TimeSpan.FromSeconds(59);
-        private readonly DateTimeOffset _dataAtual = DateTimeOffset.UtcNow;
         private readonly HttpClient _http = http;
         private readonly IProvedorToken _provedorToken = provedorToken;
         private readonly IConsoleLogger _log = log;
         private readonly TimeSpan _intervalo = intervalo;
-        private readonly TimeSpan _tamanhoJanelaBusca = tamanhoJanelaBusca > TimeSpan.FromDays(3) ? TimeSpan.FromDays(3) : tamanhoJanelaBusca ?? TimeSpan.FromDays(1);
-        private readonly TimeSpan _margemVerificacaoD = margemVerificacao ?? TimeSpan.FromDays(3);
+        private readonly TimeSpan _tamanhoJanelaBusca;
+        private readonly TimeSpan _margemVerificacaoD;
         private readonly SemaphoreSlim _gate = new(1, 1);
         private readonly string _urlBase = urlBase;
         private readonly IReadOnlyDictionary<string, string> _headers = headers;
@@ -45,15 +46,17 @@ namespace TF.src.Infra.Coletor
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken comando = default
         )
         {
+            DateTimeOffset dataAtual = DateTimeOffset.UtcNow;
             DateTimeOffset dataInicio = NormalizarData(dataBusca) - _margemVerificacaoD;
             _log.Info($"[ApiCliente] DataInicio: {dataInicio} | Iniciando função...");
 
-            while (dataInicio < _dataAtual)
+            while (dataInicio < dataAtual)
             {
                 _log.Info($"[ApiCliente] Iniciando o tempo de espera de Requisição");
                 await LimiteRequisicao(comando);
 
-                DateTimeOffset dataFim = (dataInicio + _tamanhoJanelaBusca) > _dataAtual ? _dataAtual : (dataInicio + (_tamanhoJanelaBusca + _tamanhoJanelaBuscaHMS));
+                DateTimeOffset dataFimCalculada = dataInicio + _tamanhoJanelaBusca + _tamanhoJanelaBuscaHMS;
+                DateTimeOffset dataFim = dataFimCalculada > dataAtual ? dataAtual : dataFimCalculada;
 
                 _log.Info($"[ApiCliente] Criando Url para requisição...");
                 var url = ConstrutorUrl(urlFinal, dataInicio, dataFim);
@@ -73,9 +76,19 @@ namespace TF.src.Infra.Coletor
                 };
 
                 _log.Info($"[ApiCliente] Requisitando...");
-                var resposta = await PoliticaRetentativa.ExecutarNovamenteRequisicao(
-                    _http, criarRequisicao, tentativasMaxima: 5, atrasoBase: TimeSpan.FromMilliseconds(500), timeoutPorTentativa: TimeSpan.FromSeconds(300), comando: comando, logDebug: s => _log.Aviso(s));
+                
+                HttpResponseMessage resposta;
 
+                try 
+                {
+                    resposta = await PoliticaRetentativa.ExecutarNovamenteRequisicao(
+                        _http, criarRequisicao, 5, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(300), comando, s => _log.Aviso(s));
+                }
+                catch (Exception ex)
+                {
+                    _log.Erro($"[ApiCliente] Falha fatal na requisição: {ex.Message}");
+                    throw;
+                }
 
                 if (resposta.StatusCode == HttpStatusCode.Unauthorized)
                 {
@@ -87,22 +100,20 @@ namespace TF.src.Infra.Coletor
                         _http, criarRequisicao, tentativasMaxima: 5, atrasoBase: TimeSpan.FromMilliseconds(500), timeoutPorTentativa: TimeSpan.FromSeconds(300), comando: comando, logDebug: s => _log.Aviso(s));
                 }
 
-                var body = resposta.Content.ReadAsStringAsync(comando).ToString();
-
-                _log.SalvarLogs(body, "ApiCliente_" + urlFinal.Replace("?", "") + "_" + DateTime.UtcNow.ToString().Replace("/", "-").Replace(":", "-"));
-
-                _log.Info($"[ApiCliente] Conexão foi feita com sucesso! Codigo de retorno: {resposta.StatusCode} | Resposta de Retorno: {resposta.Content}");
                 resposta.EnsureSuccessStatusCode();
 
                 _log.Info($"[ApiCliente] Tratando o json...");
-                var json = await resposta.Content.ReadAsStringAsync(comando);
+                using var stream = await resposta.Content.ReadAsStreamAsync(comando);
+                using var doc = await JsonDocument.ParseAsync(stream, _opcoesDocument, comando);
 
-                using var doc = JsonDocument.Parse(json, _opcoesDocument);
+                _log.SalvarLogs(stream, "ApiCliente_" + urlFinal.Replace("?", "") + "_" + DateTime.UtcNow.ToString().Replace("/", "-").Replace(":", "-"));
+                _log.Info($"[ApiCliente] Conexão foi feita com sucesso! Codigo de retorno: {resposta.StatusCode} | Resposta de Retorno: {resposta.Content}");
 
                 if (!TentarPegarArray(doc.RootElement, out var arr))
                 {
                     _log.Aviso("[ApiCliente] Resposta vinda não é um aray e nem contém 'data'/'items'");
                     _log.Info($"[ApiCliente] A informação veio dessa maneira: {json}");
+                    dataInicio += _tamanhoJanelaBusca;
                     continue;
                 }
 
@@ -141,9 +152,7 @@ namespace TF.src.Infra.Coletor
 
         private static DateTimeOffset NormalizarData(DateTimeOffset data)
         {
-            DateTimeOffset dt = data.AddHours(-data.Hour).AddMinutes(-data.Minute).AddSeconds(-data.Second);
-
-            return dt + TimeSpan.FromDays(3);
+            return new DateTimeOffset(data.AddHours(-data.Hour).AddMinutes(-data.Minute).AddSeconds(-data.Second));
         }
 
         private static bool TentarPegarArray(JsonElement root, out JsonElement arr)
@@ -168,9 +177,11 @@ namespace TF.src.Infra.Coletor
 
             try
             {
-                var agora = DateTime.UtcNow.Ticks;
-                var tempoDecorrido = TimeSpan.FromTicks(agora - Interlocked.Read(ref _lastTicks));
-                if (tempoDecorrido < _intervalo) await Task.Delay(_intervalo - tempoDecorrido, comando);
+                long agora = DateTime.UtcNow.Ticks;
+                long ultimo = Interlocked.Read(ref _lastTicks);
+                TimeSpan decorrido = TimeSpan.FromTicks(agora - ultimo);
+
+                if (decorrido < _intervalo) await Task.Delay(_intervalo - decorrido, comando);
                 Interlocked.Exchange(ref _lastTicks, DateTime.UtcNow.Ticks);
             }
             finally
@@ -181,9 +192,9 @@ namespace TF.src.Infra.Coletor
 
         private string ConstrutorUrl(string urlFinal, DateTimeOffset dataInicial, DateTimeOffset dataFinal)
         {
-            static string formatado(DateTimeOffset data) => data.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss");
+            string Fmt(DateTimeOffset d) => d.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss");
 
-            return $"{_urlBase}{urlFinal}start_date={formatado(dataInicial)}&end_date={formatado(dataFinal)}";
+            return $"{_urlBase}{urlFinal}start_date={Fmt(dataInicial)}&end_date={Fmt(dataFinal)}";
         }
 
         private bool TentarCriarLinha(JsonElement elemento, out ApiLinha? linha)
@@ -210,28 +221,29 @@ namespace TF.src.Infra.Coletor
         
         private static bool TentarExtrairData(JsonElement elemento, out string isoUtc)
         {
-            var candidatos = new[]
-            {
-                "updated_at", "updatedAt", "equip_date", "final_date", "start_date", "date", "data"
-            };
+            DateTimeOffset maiorData = DateTimeOffset.MinValue;
+            bool encontrou = true;
 
-            DateTimeOffset? saidaData = null;
-            foreach (var nome in candidatos)
+            foreach (var nome in _candidatosData)
             {
                 if (elemento.TryGetProperty(nome, out var v) && v.ValueKind == JsonValueKind.String)
                 {
                     var str = v.GetString();
-                    if (Utilidades.TentarPegarData(str, out var dt))
+                    if (Utilidades.TentarPegarData(str, out var dt) && !string.IsNullOrEmpty(str))
                     {
                         dt = dt.ToUniversalTime();
-                        if (saidaData is null || dt > saidaData.Value) saidaData = dt;
+                        if (dt > maiorData)
+                        {
+                            maiorData = dt;
+                            encontrou = true;
+                        } 
                     }
                 }
             }
 
-            if (saidaData is not null)
+            if (encontrou)
             {
-                isoUtc = saidaData.Value.ToString("O", CultureInfo.InvariantCulture);
+                isoUtc = maiorData.ToString("O", CultureInfo.InvariantCulture);
                 return true;
             }
 
