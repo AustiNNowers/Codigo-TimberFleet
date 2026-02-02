@@ -54,24 +54,14 @@ namespace TF.src.Infra.App
             
             await foreach (var linha in _coletor.ColetarDados(
                 _config.UrlFinal,
-                data,
+                cursorData,
                 comando
             ))
             {
                 comando.ThrowIfCancellationRequested();
 
-                if (!string.IsNullOrWhiteSpace(linha.UpdatedAtIso) &&
-                    Utilidades.TentarPegarData(linha.UpdatedAtIso, out var luai))
-                {
-                    if (Utilidades.TentarPegarData(maiorIsoVista, out var dataMaior))
-                    {
-                        if (luai > dataMaior) maiorIsoVista = luai.ToUniversalTime().ToString("O");
-                    }
-                    else
-                    {
-                        maiorIsoVista = luai.ToUniversalTime().ToString("O");
-                    }
-                }
+                if (!string.IsNullOrWhiteSpace(linha.UpdatedAtIso) && Utilidades.TentarPegarData(linha.UpdatedAtIso, out var luai))
+                    if (luai > maiorIsoVista) maiorIsoVista = luai;
 
                 bufferLinhas.Add(linha);
                 totalLinhas++;
@@ -79,14 +69,20 @@ namespace TF.src.Infra.App
                 if (bufferLinhas.Count >= _bufferLinhasPre)
                 {
                     _log.Info($"[Trabalho Atual: {_tabelaChave}] | Processando a linha...");
-                    await ProcessarBlocoAsync(bufferLinhas, totalLotes, maiorIsoVista, comando);
+                    var lotesProcessados = await ProcessarBlocoAsync(bufferLinhas, maiorIsoVista, comando);
+                    totalLotes += lotesProcessados;
+
+                    await _guardarDados.SalvarDados(_tabelaChave, maiorIsoVista.ToString("O"), comando);
                     bufferLinhas.Clear();
                 }
             }
 
             if (bufferLinhas.Count > 0)
             {
-                await ProcessarBlocoAsync(bufferLinhas, totalLotes, maiorIsoVista, comando);
+                var lotesProcessados = await ProcessarBlocoAsync(bufferLinhas, maiorIsoVista, comando);
+                totalLotes += lotesProcessados;
+
+                await _guardarDados.SalvarDados(_tabelaChave, maiorIsoVista.ToString("O"), comando);
                 bufferLinhas.Clear();
             }
 
@@ -95,28 +91,33 @@ namespace TF.src.Infra.App
 
         private async Task ProcessarBlocoAsync(
             List<ApiLinha> bloco,
-            int totalLotes,
-            string? maiorIsoVista,
+            DateTime? maiorIsoVista,
             CancellationToken comando
         )
         {
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Tratando a linha");
+            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Transformando {bloco.Count} linhas...");
             var linhasTransformadas = _transformar.Transformar(_tabelaChave, bloco);
 
             _log.Info($"[Trabalho Atual: {_tabelaChave}] | Envelopando a linha");
-            var envelopes = linhasTransformadas.Select(linhas =>
+            var envelopes = new List<Dictionary<string, object?>>(bloco.Count);
+            foreach (var linha in linhasTransformadas)
             {
-                return PayloadConstrutor.Construir(_config.UrlFinal, linhas, out var env) ? env : null;
-            }).Where(dados => dados is not null)!.Cast<Dictionary<string, object?>>();
+                if (PayloadConstrutor.Construir(_config.UrlFinal, linha, out var env))
+                {
+                    envelopes.Add(env!);
+                }
+            }
 
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Loteando...");
+            int lotesEnviados = 0;
+
+            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Loteando e Enviando...");
             foreach (var lote in _loteador.Lotear(envelopes, WaterMark))
             {
                 await _uploader.UploadPhp(lote, comando);
-                totalLotes++;
-
-                if (!string.IsNullOrWhiteSpace(maiorIsoVista)) await _guardarDados.SalvarDados(_tabelaChave, maiorIsoVista, comando);
+                lotesEnviados++;
             }
+
+            return lotesEnviados;
         }
 
         private static DateTimeOffset? WaterMark(Dictionary<string, object?> envelope)
