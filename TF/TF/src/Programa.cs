@@ -19,7 +19,7 @@ int QuantidadeParalelos()
     var quantidadeAmbiente = Environment.GetEnvironmentVariable("DOP");
     if (!string.IsNullOrWhiteSpace(quantidadeAmbiente) && int.TryParse(quantidadeAmbiente, out var qaValor) && qaValor > 0) return qaValor;
 
-    return 1;
+    return Environment.ProcessorCount - 1;
 }
 
 TimeSpan IntervaloLoops()
