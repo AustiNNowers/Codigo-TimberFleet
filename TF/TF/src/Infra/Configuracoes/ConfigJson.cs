@@ -8,25 +8,27 @@ namespace TF.src.Infra.Configuracoes
 
         private readonly JsonSerializerOptions _opcoes = new()
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
         };
 
         public async Task<RootConfig> CarregarConfiguracao(CancellationToken comando = default)
         {
-            string json;
-
             if (File.Exists(_caminhoArquivo))
             {
-                json = await File.ReadAllTextAsync(_caminhoArquivo, comando);
-            }
-            else
-            {
-                json = _caminhoArquivo;
+                using var stream = File.OpenRead(_caminhoArquivo);
+                var configArquivo = await JsonSerializer.DeserializeAsync<RootConfig>(stream, _opcoes, comando);
+                return configArquivo ?? throw new InvalidOperationException($"O arquivo '{_caminhoArquivo}' está vazio ou inválido.");
             }
 
-            var config = JsonSerializer.Deserialize<RootConfig>(json, _opcoes) ?? throw new InvalidOperationException("Falha ao carregar configuração: JSON inválido!");
-            
-            return config;
+            if (_caminhoArquivo.TrimStart().StartsWith("{"))
+            {
+                var configString = JsonSerializer.Deserialize<RootConfig>(_caminhoArquivo, _opcoes);
+                return configString ?? throw new InvalidOperationException("O JSON fornecido via string é inválido.");
+            }
+
+            throw new FileNotFoundException($"Arquivo de configuração não encontrado e o conteúdo não parece ser JSON válido: {_caminhoArquivo}");
         }
     }
 }

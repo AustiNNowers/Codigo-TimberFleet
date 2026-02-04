@@ -1,18 +1,13 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace TF.src.Infra.Processamento
 {
     internal static class Utilidades
     {
         private static readonly CultureInfo _inv = CultureInfo.InvariantCulture;
-
-        public static bool TentarPegarData(string? str, out DateTimeOffset data)
-        {
-            if (!string.IsNullOrWhiteSpace(str) &&
-                DateTimeOffset.TryParse(str, _inv, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out data)) return true;
-
-            string[] formatos =
+        private static readonly string[] _formatos =
             [
                 "yyyy-MM-dd HH:mm:ss",
                 "yyyy-MM-dd",
@@ -20,8 +15,17 @@ namespace TF.src.Infra.Processamento
                 "dd/MM/yyyy"
             ];
 
-            if (!string.IsNullOrWhiteSpace(str) &&
-                DateTime.TryParseExact(str, formatos, _inv, DateTimeStyles.AssumeLocal, out var dt))
+        public static bool TentarPegarData(string? str, out DateTimeOffset data)
+        {
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                data = default;
+                return false;
+            }
+
+            if (DateTimeOffset.TryParse(str, _inv, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out data)) return true;
+
+            if (DateTime.TryParseExact(str, _formatos, _inv, DateTimeStyles.AssumeLocal, out var dt))
             {
                 data = new DateTimeOffset(dt).ToUniversalTime();
                 return true;
@@ -35,10 +39,15 @@ namespace TF.src.Infra.Processamento
         {
             value = string.Empty;
             if (extra is null) return false;
-            if (!extra.TryGetValue(chave, out var elemento)) return false;
-            if (elemento.ValueKind == JsonValueKind.String) { value = elemento.GetString() ?? string.Empty; return true; }
+
+            if (extra.TryGetValue(chave, out var elemento) && elemento.ValueKind == JsonValueKind.String)
+            {
+                value = elemento.GetString() ?? string.Empty;
+                return true;
+            }
             return false;
         }
+
         public static bool TentarPegarDouble(Dictionary<string, JsonElement>? extra, string chave, out double value)
         {
             value = 0d;
@@ -51,7 +60,10 @@ namespace TF.src.Infra.Processamento
                     return elemento.TryGetDouble(out value);
                 case JsonValueKind.String:
                     var str = elemento.GetString() ?? "";
-                    str = str.Replace(',', '.');
+                    if (string.IsNullOrEmpty(str)) return false;
+
+                    if (str.Contains(',')) str = str.Replace(',', '.');
+
                     return double.TryParse(str, NumberStyles.Float | NumberStyles.AllowThousands, _inv, out value);
                 default:
                     return false;
@@ -74,15 +86,27 @@ namespace TF.src.Infra.Processamento
         }
 
         public static string LimparColchetes(string str)
-            => str.Replace("[", " ").Replace("]", " ").Trim();
+        {
+            if (string.IsNullOrEmpty(str)) return string.Empty;
+            if (!str.Contains('[') && !str.Contains(']')) return str;
+            return str.Replace("[", " ").Replace("]", " ").Trim();
+        }
 
         public static bool TentarSepararDoubles(string input, out double a, out double b)
         {
             a = b = 0d;
-            var partes = (input ?? "").Trim().Split(new[] { ' ', ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
-            if (partes.Length < 2) return false;
-            return double.TryParse(partes[0].Replace(',', '.'), NumberStyles.Float, _inv, out a) &&
-                   double.TryParse(partes[1].Replace(',', '.'), NumberStyles.Float, _inv, out b);
+            input ??= "";
+
+            var m = Regex.Matches(input, @"[-+]?\d+(?:[.,]\d+)?");
+            if (m.Count < 2) return false;
+
+            static bool parse(string s, out double v)
+            {
+                s = s.Replace(',', '.');
+                return double.TryParse(s, NumberStyles.Float, _inv, out v);
+            }
+
+            return parse(m[0].Value, out a) && parse(m[1].Value, out b);
         }
     }
 }

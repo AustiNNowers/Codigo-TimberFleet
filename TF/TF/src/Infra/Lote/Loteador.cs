@@ -9,6 +9,7 @@ namespace TF.src.Infra.Lote
     {
         private readonly int _maximoLinhas = Math.Max(1, maximoLinhas);
         private readonly long _maximoBytes = Math.Max(1024, maximoBytes);
+        private static readonly byte _newLine = (byte)'\n';
 
         private readonly JsonSerializerOptions _opcoes = new()
         {
@@ -19,14 +20,16 @@ namespace TF.src.Infra.Lote
 
         public IEnumerable<LoteadorPayload> Lotear(
             IEnumerable<Dictionary<string, object?>> envelopes,
-            Func<Dictionary<string, object?>, DateTimeOffset?>? waterMark = null)
+            Func<Dictionary<string, object?>, DateTime?>? waterMark = null)
         {
             if (envelopes is null) yield break;
 
             using var buffer = new MemoryStream(capacity: 64 * 1024);
-            using var writer = new StreamWriter(buffer, new UTF8Encoding(false), leaveOpen: true);
 
             int linhas = 0;
+
+            DateTime dataMinima = null;
+            DateTime dataMaxima = null;
 
             foreach (var envelope in envelopes)
             {
@@ -35,50 +38,46 @@ namespace TF.src.Infra.Lote
 
                 if (linhas > 0 && (linhas + 1 > _maximoLinhas || buffer.Length + qtdBytesAvaliados > _maximoBytes))
                 {
-                    writer.Flush();
-                    yield return Emit(buffer, linhas);
-                    Resetar(buffer, out linhas);
+                    yield return Emit(buffer, linhas, dataMinima, dataMaxima);
+
+                    buffer.SetLength(0);
+                    linhas = 0;
+                    minDate = null;
+                    maxDate = null;                
                 }
 
-                writer.Write(json);
-                writer.Write('\n');
                 linhas++;
             }
 
             if (linhas > 0)
             {
-                writer.Flush();
-                yield return Emit(buffer, linhas);
+                yield return Emit(buffer, linhas, dataMinima, dataMaxima);
             }
         }
 
-        private static LoteadorPayload Emit(MemoryStream buffer, int linhas)
+        private static LoteadorPayload Emit(MemoryStream buffer, int linhas, DateTime? dataInicio, DateTime? dataFim)
         {
-            var raw = buffer.ToArray();
-            var gzip = Gzip(raw);
+            buffer.Position = 0;
+
+            byte[] bytesComprimidos;
+
+            using (var saida = new MemoryStream())
+            {
+                using (var zip = new GZipStream(saida, CompressionLevel.Optimal, leaveOpen: true))
+                {
+                    buffer.CopyTo(zip);
+                }
+                bytesComprimidos = saida.ToArray();
+            }
 
             return new LoteadorPayload
             {
-                BytesComprimidos = gzip,
+                BytesComprimidos = bytesComprimidos,
                 Quantidade = linhas,
-                TamanhoBytes = gzip.LongLength
+                TamanhoBytes = bytesComprimidos.LongLength,
+                DataInicio = dataInicio?.ToUniversalTime().ToString("O"),
+                DataFim = dataFim?.ToUniversalTime().ToString("O")
             };
-        }
-
-        private static void Resetar(MemoryStream buffer, out int linhas)
-        {
-            buffer.SetLength(0);
-            linhas = 0;
-        }
-
-        private static byte[] Gzip(byte[] data)
-        {
-            using var saida = new MemoryStream();
-            using (var zip = new GZipStream(saida, CompressionLevel.Optimal, leaveOpen: true))
-            {
-                zip.Write(data, 0, data.Length);
-            }
-            return saida.ToArray();
         }
     }
 }

@@ -4,6 +4,8 @@ namespace TF.src.Infra.Processamento.Tabelas
 {
     public class TContadores
     {
+        private static readonly CultureInfo _inv = CultureInfo.InvariantCulture;
+
         public static ApiLinha Aplicar(ApiLinha linha)
         {
             var extra = linha.CamposExtras ??= [];
@@ -44,27 +46,54 @@ namespace TF.src.Infra.Processamento.Tabelas
                 ("tempo_movimentacao_nao_usado_diff", "tempo_movimentacao_nao_usado_diff")
             ]);
 
-            if (TentarPegarString(extra, "vehicle_desc", out var vd))
-                Set(extra, "vehicle_desc", LimparColchetes(vd));
-            if (TentarPegarString(extra, "vehicle_name", out var vn))
-                Set(extra, "vehicle_name", LimparColchetes(vn));
+            if (Utilidades.TentarPegarString(extra, "vehicle_desc", out var vd))
+                Utilidades.Set(extra, "vehicle_desc", Utilidades.LimparColchetes(vd));
+            if (Utilidades.TentarPegarString(extra, "vehicle_name", out var vn))
+                Utilidades.Set(extra, "vehicle_name", Utilidades.LimparColchetes(vn));
 
             return linha;
         }
 
         private static void DividirPontoVirgula(Dictionary<string, JsonElement> extra, string chaveFonte,
-            (string chaveExterna, string _)[] alvos)
+        (string chaveExterna, string _)[] alvos)
         {
-            if (!TentarPegarString(extra, chaveFonte, out var str) || string.IsNullOrWhiteSpace(str)) return;
+            if (!Utilidades.TentarPegarString(extra, chaveFonte, out var str) || string.IsNullOrWhiteSpace(str)) return;
 
-            var partes = str.Split(';');
-            for (int i = 0; i < alvos.Length && i < partes.Length; i++)
+            var span = str.AsSpan();
+            int alvoIdx = 0;
+            int start = 0;
+
+            while (alvoIdx < alvos.Length)
             {
-                if (double.TryParse(partes[i].Replace(',', '.'), System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture, out var valor))
+                int end = span.Slice(start).IndexOf(';');
+                ReadOnlySpan<char> segmento;
+
+                if (end == -1)
                 {
-                    Set(extra, alvos[i].chaveExterna, valor);
+                    segmento = span.Slice(start);
                 }
+                else
+                {
+                    segmento = span.Slice(start, end);
+                }
+
+                if (double.TryParse(segmento, NumberStyles.Float, _inv, out var valor))
+                {
+                     Utilidades.Set(extra, alvos[alvoIdx].chaveExterna, valor);
+                }
+                else
+                {
+                    var s = segmento.ToString().Replace(',', '.');
+                    if (double.TryParse(s, NumberStyles.Float, _inv, out valor))
+                    {
+                        Utilidades.Set(extra, alvos[alvoIdx].chaveExterna, valor);
+                    }
+                }
+
+                if (end == -1) break;
+                
+                start += end + 1;
+                alvoIdx++;
             }
         }
     }

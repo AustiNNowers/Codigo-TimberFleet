@@ -18,69 +18,45 @@ namespace TF.src.Infra.Upload
             if (lote.BytesComprimidos is null || lote.BytesComprimidos.Length == 0) throw new ArgumentException("Payload vazio.", nameof(lote));
 
             _log.Info("[Uploader] Iniciando requisição de entrega dos dados...");
-            _log.Info($"[Uploader] Lote: {lote.ToString}");
-            _log.Info($"[Uploader] LotesConvertidos: {ObterAmostraDosDados(lote)}");
+            _log.Info($"[Uploader] Enviando Lote: {lote.Quantidade} linhas | " +
+                      $"Tamanho: {lote.TamanhoBytes} bytes (Gzip) | " +
+                      $"Range: {lote.DataInicio ?? "?"} até {lote.DataFim ?? "?"}");
             
             using var resposta = await PoliticaRetentativa.ExecutarNovamenteRequisicao(
-                    _http, () =>
-                    {
-                        var r = new HttpRequestMessage(HttpMethod.Post, _urlPhp);
-                        foreach (var (k, v) in _headers) r.Headers.TryAddWithoutValidation(k, v);
-
-                        r.Content = new ByteArrayContent(lote.BytesComprimidos);
-                        r.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-ndjson")
-                        {
-                            CharSet = "utf-8"
-                        };
-                        r.Content.Headers.ContentEncoding.Add("gzip");
-                        
-                        return r;
-                    },
+                    _http, () => CriarRequisicao(lote),
                     tentativasMaxima: 5, atrasoBase: TimeSpan.FromMilliseconds(1000), timeoutPorTentativa: TimeSpan.FromSeconds(300), comando: comando, logDebug: s => _log.Aviso(s)
             );
 
             var body = await resposta.Content.ReadAsStringAsync(comando);
-            _log.Info($"[Uploader] Resposta do PHP: {body}");
 
-            _log.SalvarLogs(body, "Uploader_" + DateTime.UtcNow.ToString().Replace("/", "-").Replace(":", "-"));
-
-            _log.Info("[Uploader] Verificando se a requisição foi um sucesso...");
-            resposta.EnsureSuccessStatusCode();
+            if (!resposta.IsSuccessStatusCode)
+            {
+                _log.Erro($"[Uploader] FALHA PHP {(int)resposta.StatusCode}: {body}");
+                _log.SalvarLogs(body, $"ERRO_Upload_{DateTime.UtcNow:yyyy-MM-dd_HH-mm-ss}");
+                resposta.EnsureSuccessStatusCode();
+            }
+            else
+            {
+                var resumo = body.Length > 200 ? body[..200] + "..." : body;
+                _log.Info($"[Uploader] Sucesso! Resposta: {resumo}");
+            }
 
             _log.Info($"[Uploader] Enviado com sucesso | Total de linhas={lote.Quantidade} - Peso gzip={lote.TamanhoBytes} bytes");
         }
 
-        private static string ObterAmostraDosDados(LoteadorPayload lotes, int maximoCaracteres = 10000)
+        private HttpRequestMessage CriarRequisicao(LoteadorPayload lote)
         {
-            if (lotes.BytesComprimidos == null || lotes.BytesComprimidos.Length == 0)
+            var r = new HttpRequestMessage(HttpMethod.Post, _urlPhp);
+            foreach (var (k, v) in _headers) r.Headers.TryAddWithoutValidation(k, v);
+
+            r.Content = new ByteArrayContent(lote.BytesComprimidos);
+            r.Content.Headers.ContentType = new MediaTypeHeaderValue("application/x-ndjson")
             {
-                return "[Lote Vazio]";
-            }
-
-            try
-            {
-                using var streamComprimido = new MemoryStream(lotes.BytesComprimidos);
-                
-                using var streamDescomprimido = new MemoryStream();
-                
-                using (var descompressor = new GZipStream(streamComprimido, CompressionMode.Decompress))
-                {
-                    descompressor.CopyTo(streamDescomprimido);
-                }
-
-                string dadosCompletos = Encoding.UTF8.GetString(streamDescomprimido.ToArray());
-
-                if (dadosCompletos.Length > maximoCaracteres)
-                {
-                    return dadosCompletos.Substring(0, maximoCaracteres) + "... [truncado]";
-                }
-
-                return dadosCompletos;
-            }
-            catch (Exception ex)
-            {
-                return $"[Falha ao descomprimir amostra: {ex.Message}]";
-            }
+                CharSet = "utf-8"
+            };
+            r.Content.Headers.ContentEncoding.Add("gzip");
+            
+            return r;
         }
     }
 }

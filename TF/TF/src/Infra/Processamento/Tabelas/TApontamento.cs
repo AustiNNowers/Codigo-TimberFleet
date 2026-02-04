@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using TF.src.Infra.Processamento.Utilidades;
+
 namespace TF.src.Infra.Processamento.Tabelas
 {
     public class TApontamento
@@ -9,71 +11,80 @@ namespace TF.src.Infra.Processamento.Tabelas
             AllowTrailingCommas = true
         };
 
-        private static readonly Dictionary<string, string[]> Campos = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> _mapa = CriarMapaReverso();
+
+        private static Dictionary<string, string> CriarMapaReverso()
         {
-            ["matricula_operador"] = ["MATRICULA DO OPERADOR"],
-            ["matricula_comboista"] = ["MATRÍCULA DO COMBOISTA", "INFORME A MATRÍCULA"],
-            ["matricula_mecanico"] = ["MATRÍCULA DO MECÂNICO"],
-            ["tipo_falha"] = ["TIPO DE FALHA"],
-            ["atividade_anterior_apropriacao"] = ["ATIVIDADE(S) ANTES DA APROPRIAÇÃO"],
-            ["avaliacao"] = ["AVALIAÇÃO"],
-            ["tipo_avaliacao"] = ["INSPEÇÃO VISUAL", "CHECK LIST"],
-            ["equipamento_disponivel"] = ["DISPONIBILIDADE DO EQUIPAMENTO", "EQUIPAMENTO DISPONÍVEL?"],
-            ["motivo_indisponibilidade"] = ["MOTIVO DA INDISPONIBILIDADE"],
-            ["horimetro_motor"] = ["HORIMETRO DO MOTOR"],
-            ["tipo_oleo"] = ["TIPO DE ÓLEO"],
-            ["quantidade_abastecida"] = ["QUANTIDADE ABASTECIDA"],
-            ["volume_carga_caminhao"] = ["VOLUME DA CARGA DO CAMINHÃO"],
-            ["frota_caminhao"] = ["FROTA DO CAMINHÃO"],
-            ["balanca"] = ["BALANÇA"],
-            ["box_descarga"] = ["BOX"],
-            ["motivo"] = ["MOTIVO"],
-            ["status_inicio_abastecimento"] = ["STATUS"],
-            ["tipo_operacao"] = ["TIPO DE OPERAÇÃO"],
-            ["talhao_operacao"] = ["TALHÃO"],
-            ["tipo_produto"] = ["TIPO DE PRODUTO"],
-            ["quantidade_arvores_cortadas"] = ["QUANTIDADE DE ÁRVORES CORTADAS"],
-            ["informe_producao"] = ["INFORME A PRODUÇÃO"],
-            ["volume_caixa_carga"] = ["VOLUME DA CAIXA DE CARGA"],
-            ["tipo_servico"] = ["TIPO DE SERVIÇO"],
-            ["quantidade_toco"] = ["QUANTIDADE DE TOCOS"],
-            ["quantidade_mudas"] = ["QUANTIDADE DE MUDAS"],
-            ["hectares"] = ["HECTÁRES"],
-            ["parada"] = ["CÓDIGO DA PARADA"]
-        };
+            var mapa = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var camposOriginais = new Dictionary<string, string[]>
+            {
+                ["matricula_operador"] = ["MATRICULA DO OPERADOR"],
+                ["matricula_comboista"] = ["MATRÍCULA DO COMBOISTA", "INFORME A MATRÍCULA"],
+                ["matricula_mecanico"] = ["MATRÍCULA DO MECÂNICO"],
+                ["tipo_falha"] = ["TIPO DE FALHA"],
+                ["atividade_anterior_apropriacao"] = ["ATIVIDADE(S) ANTES DA APROPRIAÇÃO"],
+                ["avaliacao"] = ["AVALIAÇÃO"],
+                ["tipo_avaliacao"] = ["INSPEÇÃO VISUAL", "CHECK LIST"],
+                ["equipamento_disponivel"] = ["DISPONIBILIDADE DO EQUIPAMENTO", "EQUIPAMENTO DISPONÍVEL?"],
+                ["motivo_indisponibilidade"] = ["MOTIVO DA INDISPONIBILIDADE"],
+                ["horimetro_motor"] = ["HORIMETRO DO MOTOR"],
+                ["tipo_oleo"] = ["TIPO DE ÓLEO"],
+                ["quantidade_abastecida"] = ["QUANTIDADE ABASTECIDA"],
+                ["volume_carga_caminhao"] = ["VOLUME DA CARGA DO CAMINHÃO"],
+                ["frota_caminhao"] = ["FROTA DO CAMINHÃO"],
+                ["balanca"] = ["BALANÇA"],
+                ["box_descarga"] = ["BOX"],
+                ["motivo"] = ["MOTIVO"],
+                ["status_inicio_abastecimento"] = ["STATUS"],
+                ["tipo_operacao"] = ["TIPO DE OPERAÇÃO"],
+                ["talhao_operacao"] = ["TALHÃO"],
+                ["tipo_produto"] = ["TIPO DE PRODUTO"],
+                ["quantidade_arvores_cortadas"] = ["QUANTIDADE DE ÁRVORES CORTADAS"],
+                ["informe_producao"] = ["INFORME A PRODUÇÃO"],
+                ["volume_caixa_carga"] = ["VOLUME DA CAIXA DE CARGA"],
+                ["tipo_servico"] = ["TIPO DE SERVIÇO"],
+                ["quantidade_toco"] = ["QUANTIDADE DE TOCOS"],
+                ["quantidade_mudas"] = ["QUANTIDADE DE MUDAS"],
+                ["hectares"] = ["HECTÁRES"],
+                ["parada"] = ["CÓDIGO DA PARADA"]
+            };
+
+            foreach (var kv in camposOriginais)
+            {
+                foreach (var label in kv.Value)
+                {
+                    mapa[label] = kv.Key;
+                }
+            }
+            return mapa;
+        }
 
         public static ApiLinha Aplicar(ApiLinha linha)
         {
             var extra = linha.CamposExtras ??= [];
 
-            if (TentarPegarString(extra, "vehicle_desc", out var vd))
-                Set(extra, "vehicle_desc", LimparColchetes(vd));
-            if (TentarPegarString(extra, "vehicle_name", out var vn))
-                Set(extra, "vehicle_name", LimparColchetes(vn));
+            if (Utilidades.TentarPegarString(extra, "vehicle_desc", out var vd))
+                Utilidades.Set(extra, "vehicle_desc", Utilidades.LimparColchetes(vd));
+            if (Utilidades.TentarPegarString(extra, "vehicle_name", out var vn))
+                Utilidades.Set(extra, "vehicle_name", Utilidades.LimparColchetes(vn));
 
-            if (TentarPegarString(extra, "form_content", out var fc) && !string.IsNullOrWhiteSpace(fc))
+            if (Utilidades.TentarPegarString(extra, "form_content", out var fc) && !string.IsNullOrWhiteSpace(fc))
             {
-                fc = fc.Replace("\"\"", "\"");
+                if (fc.Contains("\"\"")) fc = fc.Replace("\"\"", "\"");
 
                 if (TentarDividirJson(fc, out var titulo, out var plano))
                 {
-                    if (!string.IsNullOrWhiteSpace(titulo) && !extra.ContainsKey("form_title")) Set(extra, "form_title", titulo);
+                    if (!string.IsNullOrWhiteSpace(titulo) && !extra.ContainsKey("form_title")) Utilidades.Set(extra, "form_title", titulo);
 
-                    var upperMap = plano.ToDictionary(kv => kv.Key.ToUpperInvariant(), kv => kv.Value);
-
-                    foreach (var (canon, labels) in Campos)
+                    foreach (var kv in plano)
                     {
-                        foreach (var labelV in labels)
+                        if (_mapaLabels.TryGetValue(kv.Key, out var chaveCanonico))
                         {
-                            if (upperMap.TryGetValue(labelV.ToUpperInvariant(), out var valor))
-                            {
-                                extra[canon] = JsonSerializer.SerializeToElement(valor);
-                                break;
-                            }
+                            extra[chaveCanonico] = JsonSerializer.SerializeToElement(kv.Value);
                         }
                     }
 
-                    Remover(extra, "form_content");
+                    Utilidades.Remover(extra, "form_content");
                 }
             }
 
@@ -83,22 +94,24 @@ namespace TF.src.Infra.Processamento.Tabelas
         private static bool TentarDividirJson(string jsonCru, out string titulo, out Dictionary<string, string> plano)
         {
             titulo = string.Empty;
-            plano = [];
+            plano = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             if (string.IsNullOrWhiteSpace(jsonCru)) return false;
 
-            jsonCru = jsonCru.Trim();
+            var spanJson = jsonCru.AsSpan().Trim();
 
-            if (!jsonCru.StartsWith("{") && !jsonCru.StartsWith("["))
+            if (spanJson.Length == 0 || (spanJson[0] != "{" && spanJson[0] != '['))
             {
                 Console.WriteLine($"[TApontamento] Entrada não deve ser um json");
                 return false;
             }
 
-            if (jsonCru.Length >= 2 && jsonCru.StartsWith("\"") && jsonCru.EndsWith("\""))
+            if (spanJson.Length >= 2 && spanJson[0] == '"' && spanJson[^1] !+ '"')
+            {
                 jsonCru = jsonCru[1..^1];
-
-            jsonCru = jsonCru.Replace("[\"]", "\"\"").Replace(";", "");
+                
+                if (jsonCru.Contains("[\"]")) jsonCru = jsonCru.Replace("[\"]", "\"\"").Replace(";", "");
+            }
 
             try
             {
@@ -143,54 +156,50 @@ namespace TF.src.Infra.Processamento.Tabelas
 
             foreach (var p in obj.EnumerateObject())
             {
-                var nome = p.Name.ToLowerInvariant();
+                if (p.NameEquals("title") || p.NameEquals("form_title")) continue;
 
-                if (nome is "title" or "form_title") continue;
-
-                if (nome is "label" or "key" or "name")
+                if (p.NameEquals("label") || p.NameEquals("key") || p.NameEquals("name"))
                 {
                     if (p.Value.ValueKind == JsonValueKind.String) label = p.Value.GetString();
                     continue;
                 }
 
-                if (nome is "value" or "answer" or "content" or "text")
+                if (p.NameEquals("value") || p.NameEquals("answer") || p.NameEquals("content") || p.NameEquals("text"))
                 {
                     valor = JsonParaString(p.Value);
                     continue;
                 }
 
-                if (p.Value.ValueKind == JsonValueKind.String || p.Value.ValueKind == JsonValueKind.Number || p.Value.ValueKind == JsonValueKind.True || p.Value.ValueKind == JsonValueKind.False)
+                var k = p.Value.ValueKind;
+                if (k == JsonValueKind.String || k == JsonValueKind.Number || k == JsonValueKind.True || k == JsonValueKind.False)
                 {
                     plano[p.Name] = JsonParaString(p.Value);
                     continue;
                 }
 
-                if (p.Value.ValueKind == JsonValueKind.Object) 
+                if (k == JsonValueKind.Object)
                 {
                     PlanificarObjeto(p.Value, plano);
                     continue;
                 }
 
-                if (p.Value.ValueKind == JsonValueKind.Array)
+                if (k == JsonValueKind.Array)
                 {
-                    bool eArrayDeObjetos = p.Value.GetArrayLength() > 0 && 
-                                           p.Value.EnumerateArray().First().ValueKind == JsonValueKind.Object;
-
-                    if (eArrayDeObjetos)
+                    var array = p.Value;
+                    if (array.GetArrayLength() > 0 && array[0].ValueKind == JsonValueKind.Object)
                     {
-                        foreach (var elemento in p.Value.EnumerateArray()) 
+                        foreach (var elemento in array.EnumerateArray())
                             PlanificarObjeto(elemento, plano);
                     }
                     else
                     {
                         plano[p.Name] = JsonParaString(p.Value);
                     }
-                    
-                    continue;
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(label)) plano[label] = valor ?? "";
+            if (!string.IsNullOrWhiteSpace(label)) 
+                plano[label] = valor ?? "";
         }
 
         private static string JsonParaString(JsonElement elemento)
@@ -198,7 +207,6 @@ namespace TF.src.Infra.Processamento.Tabelas
             return elemento.ValueKind switch
             {
                 JsonValueKind.String => elemento.GetString() ?? "",
-                JsonValueKind.Number => elemento.ToString(),
                 JsonValueKind.True => "true",
                 JsonValueKind.False => "false",
                 _ => elemento.ToString()

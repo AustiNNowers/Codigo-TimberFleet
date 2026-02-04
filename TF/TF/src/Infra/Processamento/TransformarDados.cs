@@ -25,19 +25,33 @@ namespace TF.src.Infra.Processamento
             if (_dop > 1 && linhas is IList<ApiLinha> lista)
             {
                 var saida = new ApiLinha[lista.Count];
-                Parallel.For(
-                    0, lista.Count,
-                    new ParallelOptions { MaxDegreeOfParallelism = _dop, CancellationToken = comando },
-                    i =>
-                    {
-                        var limpo = _limpador.Limpar(lista[i]);
-                        saida[i] = aplicar(limpo);
-                    }
-                );
 
-                for (int i = 0; i < saida.Length; i++) yield return saida[i];
+                try
+                {
+                    Parallel.For(
+                        0, lista.Count,
+                        new ParallelOptions { MaxDegreeOfParallelism = _dop, CancellationToken = comando },
+                        i =>
+                        {
+                            var limpo = _limpador.Limpar(lista[i]);
+                            saida[i] = aplicar(limpo);
+                        }
+                    );
+                }
+                catch (OperationCanceledException) {
+                    yield break;
+                }
+
+                for (int i = 0; i < saida.Length; i++) if (saida[i] != null) yield return saida[i];
 
                 yield break;
+            }
+
+            foreach (var linha in linhas)
+            {
+                comando.ThrowIfCancellationRequested();
+                var limpo = _limpador.Limpar(linha);
+                yield return aplicar(limpo);
             }
         }
     }

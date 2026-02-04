@@ -6,5 +6,5 @@ namespace TF.src.Infra.Autenticacao
         Task SalvarToken(TokenInfo token, CancellationToken comando = default);
     }
 
-    public record TokenInfo(string Token, string Expiracao);
+    public record TokenInfo(string Token, DateTime Expiracao);
 }

@@ -1,7 +1,4 @@
-using System.Net.Sockets;
 using System.Net;
-using System.Security.Cryptography;
-using System.Diagnostics;
 
 namespace TF.src.Infra.Politica
 {
@@ -32,84 +29,44 @@ namespace TF.src.Infra.Politica
 
                 try
                 {
-                    var sw = Stopwatch.StartNew();
                     var resposta = await http.SendAsync(requisicao, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-                    sw.Stop();
-
-                    var tipoResposta = resposta.GetType();
 
                     if ((int)resposta.StatusCode >= 500 || resposta.StatusCode == HttpStatusCode.TooManyRequests)
                     {
-                        var body = await resposta.Content.ReadAsStringAsync();
+                        var body = await resposta.Content.ReadAsStringAsync(cts.Token);
                         logDebug?.Invoke(
                             $"[PoliticaRetentativa] {(int)resposta.StatusCode} {resposta.ReasonPhrase} " +
                             $"| Headers: {resposta.Headers} " +
                             $"| Body: {(body.Length > 800 ? body[..800] + "…" : body)}"
                         );
                         resposta.Dispose();
-                        await Task.Delay(CalcularAtraso(atraso, tentativa, rnd), comando);
+                        await Task.Delay(CalcularAtraso(atraso, tentativa), comando);
                         continue;
                     }
 
                     return resposta;
                 }
-                catch (TaskCanceledException ex) when (!comando.IsCancellationRequested)
+                catch (Exception ex) when (ex is TaskCanceledException || ex is HttpRequestException)
                 {
-                    logDebug.Invoke($"[Politica Retentativa] Tarefa foi cancelada!!! - Mensagem de Cancelamento: {ex.Message}");
-                    await Task.Delay(CalcularAtraso(atraso, tentativa, rnd), comando);
-                    continue;
-                }
-                catch (HttpRequestException ex)
-                {
-                    logDebug.Invoke($"[Politica Retentativa] Houve um erro de requisição: {ex.Message}");
-                    await Task.Delay(CalcularAtraso(atraso, tentativa, rnd), comando);
-                    continue;
+                    if (tentativa == tentativasMaxima) throw;
+
+                    logDebug?.Invoke($"[PoliticaRetentativa] Erro transiente: {ex.Message}. Tentando novamente...");
+                    await Task.Delay(CalcularAtraso(atraso, tentativa), comando);
                 }
             }
 
             throw new TimeoutException($"Tentativas excedidas!");
         }
 
-        private static TimeSpan CalcularAtraso(TimeSpan baseDelay, int tentativa, Random rnd)
+        private static TimeSpan CalcularAtraso(TimeSpan baseDelay, int tentativa)
         {
             var fator = Math.Pow(2, tentativa - 1);
-            var jitter = TimeSpan.FromMilliseconds(rnd.Next(0, 250));
+            var jitter = Random.Shared.Next(0, 250);
+
             var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * fator) + jitter;
 
-            var max = TimeSpan.FromSeconds(10);
+            var max = TimeSpan.FromSeconds(30);
             return delay > max ? max : delay;
-        }
-
-        private static bool StatusHttp(HttpStatusCode status)
-        {
-            return (int)status == 429 || ((int)status >= 500 && (int)status <= 599);
-        }
-
-        private static bool VerificacaoTemporario(Exception ex)
-        {
-            return ex is HttpRequestException
-                || ex is TaskCanceledException
-                || ex is IOException
-                || ex.InnerException is SocketException;
-        }
-
-        private static TimeSpan Jitter(TimeSpan atrasoBase, int tentativa)
-        {
-            var exponecial = TimeSpan.FromMilliseconds(atrasoBase.TotalMilliseconds * Math.Pow(2, tentativa - 1));
-            if (exponecial > TimeSpan.FromSeconds(15)) exponecial = TimeSpan.FromSeconds(15);
-
-            var jitterMili = RandomJitter(0, 250);
-            return exponecial + TimeSpan.FromMilliseconds(jitterMili);
-        }
-
-        private static int RandomJitter(int minInclusive, int maxInclusive)
-        {
-            Span<byte> b = stackalloc byte[4];
-            RandomNumberGenerator.Fill(b);
-            int bitCru = BitConverter.ToInt32(b);
-
-            bitCru = Math.Abs(bitCru);
-            return minInclusive + (bitCru % (maxInclusive - minInclusive + 1));
         }
     }
 }

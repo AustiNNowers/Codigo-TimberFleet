@@ -4,7 +4,6 @@ namespace TF.src.Infra.Logging
     {
         private readonly object _lock = new();
         private readonly string _diretorioLogs = Directory.GetCurrentDirectory() + "/Logs/";
-
         public void Info(string mensagem) => Escrever("INFORMAÇÃO", ConsoleColor.DarkMagenta, ConsoleColor.White, mensagem);
         public void Aviso(string mensagem) => Escrever("AVISO", ConsoleColor.Yellow, ConsoleColor.Black, mensagem);
         public void Erro(string mensagem, Exception? excessao = null) => Escrever("ERRO", ConsoleColor.Red, ConsoleColor.White, mensagem, excessao);
@@ -29,12 +28,22 @@ namespace TF.src.Infra.Logging
                 {
                     try
                     {
-                        var nomeArquivo = $"{agora:dd/MM/yyyy HH:mm}.log";
+                        var nomeArquivo = $"{agora:dd-MM-yyyy_HH-mm}.log";
                         var caminhoArquivo = Path.Combine(_diretorioLogs, nomeArquivo);
-                        File.AppendAllText(caminhoArquivo, $"{prefixo} {mensagem}{Environment.NewLine}{excessao}");
+
+                        var logBuilder = new StringBuilder();
+                        logBuilder.Append(prefixo).Append(' ').Append(mensagem).AppendLine();
+                        if (excessao != null)
+                        {
+                            logBuilder.AppendLine("Stack Trace:");
+                            logBuilder.AppendLine(excessao.ToString());
+                        }
+
+                        File.AppendAllText(caminhoArquivo, logBuilder.ToString());                    
                     }
                     catch
                     {
+                        Console.Error.WriteLine($"FALHA AO GRAVAR LOG EM ARQUIVO: {ex.Message}");
                     }
                 }
             }
@@ -42,11 +51,23 @@ namespace TF.src.Infra.Logging
     
         public void SalvarLogs(string? texto, string titulo)
         {
-            StreamWriter escritor = new StreamWriter("C:\\Users\\LUIS.BRANCO\\Logs TF\\" + titulo);
+            if (string.IsNullOrWhiteSpace(texto)) return;
 
-            escritor.Write(texto);
+            try 
+            {
+                var tituloSeguro = string.Join("_", titulo.Split(Path.GetInvalidFileNameChars()));
+                var caminho = Path.Combine(_diretorioLogs, "Dumps");
+                
+                if (!Directory.Exists(caminho)) Directory.CreateDirectory(caminho);
 
-            escritor.Close();
+                var caminhoCompleto = Path.Combine(caminho, tituloSeguro + ".json");
+
+                File.WriteAllText(caminhoCompleto, texto);
+            }
+            catch (Exception ex)
+            {
+                Aviso($"Falha ao salvar dump de log '{titulo}': {ex.Message}");
+            }
         }
     }
 }

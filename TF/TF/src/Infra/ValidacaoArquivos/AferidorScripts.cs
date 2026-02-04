@@ -17,6 +17,7 @@ public class CarregarScripts
 
     public required HttpClient HttpApi { get; init; }
     public required HttpClient HttpUpload { get; init; }
+    public required HttpClient HttpToken { get; init; }
 
     public required IColetorDados ApiCliente { get; init; }
     public required ITransformarDados Transformar { get; init; }
@@ -142,6 +143,7 @@ public static class Aferidor
             ProvedorToken = provedorToken,
             HttpApi = httpApi,
             HttpUpload = httpUpload,
+            HttpToken = httpToken,
             ApiCliente = apiCliente,
             Transformar = transformar,
             Loteador = loteador,

@@ -46,7 +46,7 @@ namespace TF.src.Infra.Configuracoes
         public required string UrlFinal { get; set; }
 
         [JsonPropertyName("UltimaAtualizacao")]
-        public required string UltimaAtualizacao { get; set; }
+        public required DateTime UltimaAtualizacao { get; set; }
 
         [JsonPropertyName("TabelaAtiva")]
         public required bool TabelaAtiva { get; set; }
@@ -58,10 +58,10 @@ namespace TF.src.Infra.Configuracoes
         public required string Token { get; set; }
 
         [JsonPropertyName("Data_Gerada")]
-        public required string DataGerada { get; set; }
+        public required DateTime DataGerada { get; set; }
 
         [JsonPropertyName("Data_Expiracao")]
-        public required string DataExpirada { get; set; }
+        public required DateTime DataExpirada { get; set; }
     }
 
     public class CredenciaisMeta

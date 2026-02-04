@@ -8,15 +8,44 @@ namespace TF.src.Infra.Autenticacao
         private readonly IArmazenagemToken _armazenar = armazenar;
         private readonly RootConfig _config = config;
         private readonly IConsoleLogger _log = log;
+        private readonly SemaphoreSlim _lock = new(1, 1);        
+        private readonly TimeSpan _margemSeguranca = TimeSpan.FromMinutes(5);
 
         public async Task<string> GerarToken(CancellationToken comando = default)
         {
-            var token = await _armazenar.ObterToken(comando);
-            if (token is not null && DateTime.ParseExact(token.Expiracao, "dd/MM/yyyy HH:mm:ss", null) > DateTime.Now) return token.Token;
+            var t = await _armazenar.ObterToken(comando);
+            if (TokenValido(t)) return t!.Token;
 
-            await RenovarToken(comando);
-            var renovado = await _armazenar.ObterToken(comando) ?? throw new InvalidOperationException("Falha ao obter token.");
-            return renovado.Token;
+            await _lock.WaitAsync(comando);
+            try
+            {
+                t = await _armazenar.ObterToken(comando);
+                if (TokenValido(t)) return t!.Token;
+
+                await RenovarToken(comando);
+
+                t = await _armazenar.ObterToken(comando) ?? throw new InvalidOperationException("Falha ao obter token após renovar.");
+                if (!TokenValido(t))
+                    throw new InvalidOperationException("Token renovado, mas expiração inválida.");
+
+                return t.Token;
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
+
+        private bool TokenValido(TokenInfo? t)
+        {
+            if (t is null) return false;
+            if (string.IsNullOrWhiteSpace(t.Token) || string.IsNullOrWhiteSpace(t.Expiracao)) return false;
+
+            if (!DateTime.TryParse(t.Expiracao, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var exp))
+                return false;
+
+            return exp > DateTimeOffset.UtcNow.Add(_margemSeguranca);
         }
 
         public async Task RenovarToken(CancellationToken comando = default)
@@ -48,12 +77,14 @@ namespace TF.src.Infra.Autenticacao
             resposta.EnsureSuccessStatusCode();
             _log.Info("[Auth] Requisição com sucesso");
 
-            var json = await resposta.Content.ReadAsStringAsync(comando);
-            using var doc = JsonDocument.Parse(json);
+            var dataExpiracao = DateTime.Now.AddDays(1).Subtract(TimeSpan.FromHours(-1));
+
+            using var stream = await resposta.Content.ReadAsStreamAsync(comando);
+            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: comando);
 
             var acesso = doc.RootElement.GetProperty("access_token").GetString() ?? "";
 
-            await _armazenar.SalvarToken(new TokenInfo(acesso, DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")), comando);
+            await _armazenar.SalvarToken(new TokenInfo(acesso, dataExpiracao.ToString("O")), comando);
             _log.Info("[Auth] Token salvo");
         }
     }

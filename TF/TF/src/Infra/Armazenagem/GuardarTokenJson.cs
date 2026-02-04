@@ -58,9 +58,10 @@ namespace TF.src.Infra.Armazenagem
 
                 informacoes["Token"] = token.Token;
                 informacoes["Data_Gerada"] = token.Expiracao;
-                informacoes["Data_Expiracao"] = DateTime.ParseExact(token.Expiracao, "dd/MM/yyyy HH:mm:ss", null).ToString();
+                informacoes["Data_Expiracao"] = token.Expiracao;
 
                 var atualizacao = root.ToJsonString(_opcoes);
+                
                 await File.WriteAllTextAsync(_caminho, atualizacao, comando);
             }
             finally

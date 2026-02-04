@@ -2,7 +2,7 @@ namespace TF.src.Infra.Armazenagem
 {
     public class GuardarTokenRemoto : IArmazenagemToken
     {
-        private TokenInfo? _token;
+        private volatile TokenInfo? _token;
 
         public Task<TokenInfo?> ObterToken(CancellationToken comando = default) => Task.FromResult(_token);
 

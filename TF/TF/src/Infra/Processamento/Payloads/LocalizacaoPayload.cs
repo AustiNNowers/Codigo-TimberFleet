@@ -16,15 +16,23 @@ namespace TF.src.Infra.Processamento.Payloads
 
             double? lat = GetDouble(ex, "latitude");
             double? lon = GetDouble(ex, "longitude");
-
+            
             if ((lat is null || lon is null) && GetStr(ex, "latlon") is string latlon && !string.IsNullOrWhiteSpace(latlon))
             {
-                var p = latlon.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (p.Length == 2 &&
-                    double.TryParse(p[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var dLat) &&
-                    double.TryParse(p[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var dLon))
-                { lat = dLat; lon = dLon; }
+                var m = Regex.Matches(latlon, @"[-+]?\d+(?:[.,]\d+)?");
+                if (m.Count >= 2)
+                {
+                    static bool parse(string s, out double v)
+                    {
+                        s = s.Replace(',', '.');
+                        return double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out v);
+                    }
+
+                    if (parse(m[0].Value, out var dLat) && parse(m[1].Value, out var dLon))
+                    { lat = dLat; lon = dLon; }
+                }
             }
+
 
             var dados = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             {
