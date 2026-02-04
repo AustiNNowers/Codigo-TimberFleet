@@ -1,6 +1,5 @@
 using System.Globalization;
-
-using TF.src.Infra.Processamento.Utilidades;
+using System.Threading.Channels;
 
 namespace TF.src.Infra.App
 {
@@ -18,7 +17,6 @@ namespace TF.src.Infra.App
         private readonly IUploader _uploader = uploader;
         private readonly IConsoleLogger _log = log;
         private readonly IGuardarDados _guardarDados = guardarDados;
-
         private readonly int _bufferLinhasPre = bufferLinhasPre;
 
         public async Task Executar(CancellationToken comando = default)
@@ -42,82 +40,118 @@ namespace TF.src.Infra.App
                 }
             }
 
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] Janela de busca de dados: {data} > {DateTime.Now}");
-
-            var bufferLinhas = new List<ApiLinha>(_bufferLinhasPre);
-
-            DateTime maiorIsoVista = cursorData;
-
-            int totalLinhas = 0, totalLotes = 0;
-
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] Iniciando ColetaDados...");
-            
-            await foreach (var linha in _coletor.ColetarDados(
-                _config.UrlFinal,
-                cursorData,
-                comando
-            ))
+            var opcoesCanal = new BoundedChannelOptions(5)
             {
-                comando.ThrowIfCancellationRequested();
+                SingleReader = true,
+                SingleWriter = true,
+                FullMode = BoundedChannelFullMode.Wait
+            };
 
-                if (!string.IsNullOrWhiteSpace(linha.UpdatedAtIso) && Utilidades.TentarPegarData(linha.UpdatedAtIso, out var luai))
-                    if (luai > maiorIsoVista) maiorIsoVista = luai;
+            var canal = Channel.CreateBounded<(List<ApiLinha> Dados, DateTime? CursorFIFO)>(opcoesCanal);
 
-                bufferLinhas.Add(linha);
-                totalLinhas++;
-                
-                if (bufferLinhas.Count >= _bufferLinhasPre)
-                {
-                    _log.Info($"[Trabalho Atual: {_tabelaChave}] | Processando a linha...");
-                    var lotesProcessados = await ProcessarBlocoAsync(bufferLinhas, maiorIsoVista, comando);
-                    totalLotes += lotesProcessados;
+            var tarefaProduzente = ProduzirDados(canal.Writer, cursorData, comando);
+            var tarefaComsumidora = ConsumirDados(canal.Reader, comando);
 
-                    await _guardarDados.SalvarDados(_tabelaChave, maiorIsoVista.ToString("O"), comando);
-                    bufferLinhas.Clear();
-                }
-            }
+            await Task.WhenAll(tarefaComsumidora, tarefaProduzente);
 
-            if (bufferLinhas.Count > 0)
-            {
-                var lotesProcessados = await ProcessarBlocoAsync(bufferLinhas, maiorIsoVista, comando);
-                totalLotes += lotesProcessados;
-
-                await _guardarDados.SalvarDados(_tabelaChave, maiorIsoVista.ToString("O"), comando);
-                bufferLinhas.Clear();
-            }
-
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] Concluído. Linhas totais: {totalLinhas} | Lotes totais: {totalLotes} | Nova Data Cursor: {maiorIsoVista ?? "Sem alteração"}");
+            _log.Info($"[Trabalho Atual: {_tabelaChave}] Canais de Execução da Tabela foi finalizado com sucesso!");
         }
 
-        private async Task ProcessarBlocoAsync(
-            List<ApiLinha> bloco,
-            DateTime? maiorIsoVista,
+        private async Task ProduzirDados(ChannelWriter<(List<ApiLinha>, DateTime?)> escritor, DateTime cursorInicial, CancellationToken token)
+        {
+            try
+            {
+                var buffer = new List<ApiLinha>(_bufferLinhasPre);
+                DateTime maiorData = cursorInicial;
+                bool teveAtualizacao = false;
+
+                int totalLinhas = 0, totalLotesDespachados = 0;
+
+                _log.Info($"[Trabalho Atual: {_tabelaChave}] Iniciando ColetaDados...");
+                
+                await foreach (var linha in _coletor.ColetarDados(
+                    _config.UrlFinal,
+                    cursorInicial,
+                    comando
+                ))
+                {
+                    comando.ThrowIfCancellationRequested();
+
+                    if (!string.IsNullOrWhiteSpace(linha.UpdatedAtIso) && Utilidades.TentarPegarData(linha.UpdatedAtIso, out var luai))
+                        if (luai > maiorData)
+                        {
+                            maiorData = luai;
+                            teveAtualizacao = true;
+                        }
+
+                    buffer.Add(linha);
+                    totalLinhas++;
+                    
+                    if (buffer.Count >= _bufferLinhasPre)
+                    {
+                        _log.Info($"[Trabalho Atual: {_tabelaChave}] | Buffer enchou, despachando para o canal...");
+                        var pacote = new List<ApiLinha>(buffer);
+
+                        await escritor.WriteAsync((pacote, teveAtualizacao ? maiorData : null), comando);
+                        totalLotesDespachados++;
+                        buffer.Clear();
+                    }
+                }
+
+                if (bufferLinhas.Count > 0)
+                {
+                    await escritor.WriteAsync((pacote, teveAtualizacao ? maiorData : null), comando);
+                }
+
+                escritor.Complete();
+                _log.Info($"[Trabalho Atual: {_tabelaChave}] Concluído. Linhas totais: {totalLinhas} | Lotes totais: {totalLotes} | Nova Data Cursor: {maiorIsoVista ?? "Sem alteração"}");
+            }
+            catch
+            {
+                _log.Erro($"[Produtor {_tabelaChave}] Falha no download: {ex.Message}");
+                escritor.Complete(ex);
+                throw;
+            }
+        }
+
+        private async Task ConsumirDados(
+            ChannelReader<(List<ApiLinha> Dados, DateTime? cursorFIFO)> leitor,
             CancellationToken comando
         )
         {
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Transformando {bloco.Count} linhas...");
-            var linhasTransformadas = _transformar.Transformar(_tabelaChave, bloco);
+            int lotesProcessados = 0;
 
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Envelopando a linha");
-            var envelopes = new List<Dictionary<string, object?>>(bloco.Count);
-            foreach (var linha in linhasTransformadas)
+            await foreach(var (linhas, cursorParaSalvar) in leitor.ReadAllAsync(comando))
             {
-                if (PayloadConstrutor.Construir(_config.UrlFinal, linha, out var env))
+                try
                 {
-                    envelopes.Add(env!);
+                    _log.Info($"[Consumidor {_tabelaChave}] Processando {linhas.Count} linhas...");
+
+                    var transformadas = _transformar.Transformar(_tabelaChave, linhas);
+                    var envelopes = new List<Dictionary<string, object?>>(linhas.Count);
+                    foreach (var linha in transformadas)
+                    {
+                        if (PayloadConstrutor.Construir(_config.UrlFinal, linha, out var env))
+                            envelopes.Add(env!);
+                    }
+
+                    foreach (var subLote in _loteador.Lotear(envelopes, WaterMark))
+                    {
+                        await _uploader.UploadPhp(subLote, comando);
+                        lotesProcessados++;
+                    }
+
+                    if (cursorParaSalvar.HasValue)
+                    {
+                        await _guardarDados.SalvarDados(_tabelaChave, cursorParaSalvar.Value.ToUniversalTime().ToString("O"), comando);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Erro($"[Consumidor {_tabelaChave}] Falha no processamento/upload dos dados: {ex.Message}");
+                    throw;
                 }
             }
-
-            int lotesEnviados = 0;
-
-            _log.Info($"[Trabalho Atual: {_tabelaChave}] | Loteando e Enviando...");
-            foreach (var lote in _loteador.Lotear(envelopes, WaterMark))
-            {
-                await _uploader.UploadPhp(lote, comando);
-                lotesEnviados++;
-            }
-
-            return lotesEnviados;
         }
 
         private static DateTimeOffset? WaterMark(Dictionary<string, object?> envelope)

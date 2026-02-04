@@ -1,43 +1,33 @@
 namespace TF.src.Infra.App.Agendadores
 {
-    public class AgendadorImediato(int paralelos) : IAgendadorTabela
+    public class AgendadorImediato(int paralelos, IConsoleLogger log = null) : IAgendadorTabela
     {
         private readonly int _paralelos = Math.Max(1, paralelos);
+        private readonly IConsoleLogger _log = log;
 
         public async Task Executar(IEnumerable<Func<CancellationToken, Task>> trabalhos, CancellationToken comando = default)
         {
-            var lista = trabalhos?.ToList() ?? [];
-            if (lista.Count == 0) return;
+            var listaTrabalho = trabalhos?? Enumerable.Empty<Func<CancellationToken, Task>>();
 
-            int index = -1;
-
-            var trabalhadores = new Task[_paralelos];
-            for (int t = 0; t < _paralelos; t++)
-            {
-                trabalhadores[t] = Task.Run(async () =>
+            await Parallel.ForEachAsync(
+                listaTrabalho,
+                new ParallelOptions
                 {
-                    while (true)
+                    MaxDegreeOfParallelism = _paralelos,
+                    CancellationToken = comando
+                },
+                async (trabalho, token) =>
+                {
+                    try
                     {
-                        comando.ThrowIfCancellationRequested();
-
-                        int i = Interlocked.Increment(ref index);
-                        if (i >= lista.Count) break;
-
-                        var trabalho = lista[i];
-
-                        try
-                        {
-                            await trabalho(comando);
-                        }
-                        catch
-                        {
-
-                        }
+                        await trabalho(token);
                     }
-                }, comando);
-            }
-
-            await Task.WhenAll(trabalhadores);
+                    catch (Exception ex)
+                    {
+                        _log.Erro($"[Agendador] Falha não tratada na execução de uma tabela: {ex.Message}");
+                    }
+                }
+            );
         }
     }
 }

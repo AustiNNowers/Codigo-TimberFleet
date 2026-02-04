@@ -120,7 +120,7 @@ public static class Aferidor
 
         IUploader uploader = new Uploader(httpUpload, config, logger);
 
-        var agendador = new AgendadorImediato(paralelos ?? 1);
+        var agendador = new AgendadorImediato(paralelos ?? 1, logger);
 
         var executor = new CanalExecucao(
                 provedorConfig,
