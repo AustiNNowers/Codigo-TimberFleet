@@ -1,6 +1,6 @@
 using System.Text.Json;
-
-using TF.src.Infra.Processamento.Utilidades;
+using TF.src.Infra.Modelo;
+using TF.src.Infra.Processamento;
 
 namespace TF.src.Infra.Processamento.Tabelas
 {
@@ -78,7 +78,7 @@ namespace TF.src.Infra.Processamento.Tabelas
 
                     foreach (var kv in plano)
                     {
-                        if (_mapaLabels.TryGetValue(kv.Key, out var chaveCanonico))
+                        if (_mapa.TryGetValue(kv.Key, out var chaveCanonico))
                         {
                             extra[chaveCanonico] = JsonSerializer.SerializeToElement(kv.Value);
                         }
@@ -100,13 +100,13 @@ namespace TF.src.Infra.Processamento.Tabelas
 
             var spanJson = jsonCru.AsSpan().Trim();
 
-            if (spanJson.Length == 0 || (spanJson[0] != "{" && spanJson[0] != '['))
+            if (spanJson.Length == 0 || (spanJson[0] != '{' && spanJson[0] != '['))
             {
                 Console.WriteLine($"[TApontamento] Entrada não deve ser um json");
                 return false;
             }
 
-            if (spanJson.Length >= 2 && spanJson[0] == '"' && spanJson[^1] !+ '"')
+            if (spanJson.Length >= 2 && spanJson[0] == '"' && spanJson[^1] != '"')
             {
                 jsonCru = jsonCru[1..^1];
                 

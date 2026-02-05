@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using TF.src.Infra.Autenticacao;
+using TF.src.Infra.Logging;
 using TF.src.Infra.Modelo;
 using TF.src.Infra.Politica;
 using TF.src.Infra.Processamento;

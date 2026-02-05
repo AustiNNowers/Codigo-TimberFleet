@@ -1,3 +1,5 @@
+using TF.src.Infra.Modelo;
+
 namespace TF.src.Infra.Processamento.Tabelas
 {
     public static class TLocalizacao
@@ -6,18 +8,18 @@ namespace TF.src.Infra.Processamento.Tabelas
         {
             var extra = linha.CamposExtras ??= [];
 
-            if (TentarPegarString(extra, "latlon", out var latlon) &&
-                TentarSepararDoubles(latlon, out var lat, out var lon))
+            if (Utilidades.TentarPegarString(extra, "latlon", out var latlon) &&
+                Utilidades.TentarSepararDoubles(latlon, out var lat, out var lon))
             {
-                Set(extra, "latitude", lat);
-                Set(extra, "longitude", lon);
-                Remover(extra, "latlon");
+                Utilidades.Set(extra, "latitude", lat);
+                Utilidades.Set(extra, "longitude", lon);
+                Utilidades.Remover(extra, "latlon");
             }
 
-            if (TentarPegarString(extra, "vehicle_desc", out var vd))
-                Set(extra, "vehicle_desc", LimparColchetes(vd));
-            if (TentarPegarString(extra, "vehicle_name", out var vn))
-                Set(extra, "vehicle_name", LimparColchetes(vn));
+            if (Utilidades.TentarPegarString(extra, "vehicle_desc", out var vd))
+                Utilidades.Set(extra, "vehicle_desc", Utilidades.LimparColchetes(vd));
+            if (Utilidades.TentarPegarString(extra, "vehicle_name", out var vn))
+                Utilidades.Set(extra, "vehicle_name", Utilidades.LimparColchetes(vn));
 
             return linha;
         }

@@ -1,3 +1,6 @@
+using TF.src.Infra.Autenticacao;
+using TF.src.Infra.Armazenagem;
+
 namespace TF.src.Infra.Armazenagem
 {
     public class GuardarTokenRemoto : IArmazenagemToken

@@ -1,4 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
+
+using TF.src.Infra.Modelo;
 
 namespace TF.src.Infra.Processamento.Tabelas
 {

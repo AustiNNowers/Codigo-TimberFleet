@@ -1,3 +1,4 @@
+
 namespace TF.src.Infra.Logging
 {
     public interface IConsoleLogger
@@ -7,5 +8,6 @@ namespace TF.src.Infra.Logging
         void Erro(string mensagem, Exception? excessao = null);
 
         void SalvarLogs(string? texto, string titulo);
+        void SalvarLogs(Stream stream, string v);
     }
 }

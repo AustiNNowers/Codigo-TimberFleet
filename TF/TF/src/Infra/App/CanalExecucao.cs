@@ -1,7 +1,10 @@
 using TF.src.Infra.Armazenagem;
 using TF.src.Infra.Configuracoes;
+using TF.src.Infra.Lote;
+using TF.src.Infra.Logging;
 using TF.src.Infra.Processamento;
 using TF.src.Infra.Upload;
+using TF.src.Infra.Coletor;
 
 namespace TF.src.Infra.App
 {

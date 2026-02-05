@@ -1,3 +1,5 @@
+using TF.src.Infra.Lote;
+
 namespace TF.src.Infra.Upload
 {
     public interface IUploader

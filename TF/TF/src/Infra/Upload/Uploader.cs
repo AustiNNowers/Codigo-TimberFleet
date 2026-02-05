@@ -2,6 +2,11 @@ using System.Net.Http.Headers;
 using System.IO.Compression;
 using System.Text;
 
+using TF.src.Infra.Configuracoes;
+using TF.src.Infra.Lote;
+using TF.src.Infra.Logging;
+using TF.src.Infra.Politica;
+
 namespace TF.src.Infra.Upload
 {
     public class Uploader(HttpClient http, RootConfig configuracoes, IConsoleLogger log) : IUploader
@@ -42,6 +47,11 @@ namespace TF.src.Infra.Upload
             }
 
             _log.Info($"[Uploader] Enviado com sucesso | Total de linhas={lote.Quantidade} - Peso gzip={lote.TamanhoBytes} bytes");
+        }
+
+        public Task UploadPhp(LoteadorPayload lote, CancellationToken comando = default)
+        {
+            throw new NotImplementedException();
         }
 
         private HttpRequestMessage CriarRequisicao(LoteadorPayload lote)

@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
+
 using TF.src.Infra.Configuracoes;
+using TF.src.Infra.Logging;
 using TF.src.Infra.Politica;
 
 namespace TF.src.Infra.Autenticacao

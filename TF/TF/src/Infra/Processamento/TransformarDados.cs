@@ -1,3 +1,6 @@
+using TF.src.Infra.Logging;
+using TF.src.Infra.Modelo;
+
 namespace TF.src.Infra.Processamento
 {
     public class TransformarDados(ILimparDados limpador, IConsoleLogger log, int dop = 1, CancellationToken comando = default) : ITransformarDados

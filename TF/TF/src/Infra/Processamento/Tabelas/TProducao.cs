@@ -1,3 +1,5 @@
+using TF.src.Infra.Modelo;
+
 namespace TF.src.Infra.Processamento.Tabelas
 {
     public static class TProducao
@@ -6,10 +8,10 @@ namespace TF.src.Infra.Processamento.Tabelas
         {
             var extra = linha.CamposExtras ??= [];
 
-            if (TentarPegarDouble(extra, "volume_total", out var vt))
-                Set(extra, "volume_total", vt / 10000.0);
-            if (TentarPegarString(extra, "vehicle_name", out var vn))
-                Set(extra, "vehicle_name", LimparColchetes(vn));
+            if (Utilidades.TentarPegarDouble(extra, "volume_total", out var vt))
+                Utilidades.Set(extra, "volume_total", vt / 10000.0);
+            if (Utilidades.TentarPegarString(extra, "vehicle_name", out var vn))
+                Utilidades.Set(extra, "vehicle_name", Utilidades.LimparColchetes(vn));
 
             return linha;
         }

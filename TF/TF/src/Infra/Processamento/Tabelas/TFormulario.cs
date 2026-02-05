@@ -1,4 +1,5 @@
 using System.Text.Json;
+using TF.src.Infra.Modelo;
 
 namespace TF.src.Infra.Processamento.Tabelas
 {
@@ -46,18 +47,18 @@ namespace TF.src.Infra.Processamento.Tabelas
         {
             var extra = linha.CamposExtras ??= [];
 
-            if (TentarPegarString(extra, "vehicle_desc", out var vd))
-                Set(extra, "vehicle_desc", LimparColchetes(vd));
-            if (TentarPegarString(extra, "vehicle_name", out var vn))
-                Set(extra, "vehicle_name", LimparColchetes(vn));
+            if (Utilidades.TentarPegarString(extra, "vehicle_desc", out var vd))
+                Utilidades.Set(extra, "vehicle_desc", Utilidades.LimparColchetes(vd));
+            if (Utilidades.TentarPegarString(extra, "vehicle_name", out var vn))
+                Utilidades.Set(extra, "vehicle_name", Utilidades.LimparColchetes(vn));
 
-            if (TentarPegarString(extra, "form_content", out var fc) && !string.IsNullOrWhiteSpace(fc))
+            if (Utilidades.TentarPegarString(extra, "form_content", out var fc) && !string.IsNullOrWhiteSpace(fc))
             {
                 fc = fc.Replace("\"\"", "\"");
 
                 if (TentarDividirJson(fc, out var titulo, out var plano))
                 {
-                    if (!string.IsNullOrWhiteSpace(titulo) && !extra.ContainsKey("form_title")) Set(extra, "form_title", titulo);
+                    if (!string.IsNullOrWhiteSpace(titulo) && !extra.ContainsKey("form_title")) Utilidades.Set(extra, "form_title", titulo);
 
                     var upperMap = plano.ToDictionary(kv => kv.Key.ToUpperInvariant(), kv => kv.Value);
 
@@ -73,7 +74,7 @@ namespace TF.src.Infra.Processamento.Tabelas
                         }
                     }
 
-                    Remover(extra, "form_content");
+                    Utilidades.Remover(extra, "form_content");
                 }
             }
 
