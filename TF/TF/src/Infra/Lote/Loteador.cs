@@ -28,8 +28,8 @@ namespace TF.src.Infra.Lote
 
             int linhas = 0;
 
-            DateTime dataMinima = null;
-            DateTime dataMaxima = null;
+            DateTime? dataMinima = null;
+            DateTime? dataMaxima = null;
 
             foreach (var envelope in envelopes)
             {
@@ -42,8 +42,8 @@ namespace TF.src.Infra.Lote
 
                     buffer.SetLength(0);
                     linhas = 0;
-                    minDate = null;
-                    maxDate = null;                
+                    dataMinima = null;
+                    dataMaxima = null;                
                 }
 
                 linhas++;
@@ -75,9 +75,14 @@ namespace TF.src.Infra.Lote
                 BytesComprimidos = bytesComprimidos,
                 Quantidade = linhas,
                 TamanhoBytes = bytesComprimidos.LongLength,
-                DataInicio = dataInicio?.ToUniversalTime().ToString("O"),
-                DataFim = dataFim?.ToUniversalTime().ToString("O")
+                DataInicio = dataInicio?.ToUniversalTime(),
+                DataFim = dataFim?.ToUniversalTime()
             };
+        }
+
+        public IEnumerable<LoteadorPayload> Lotear(IEnumerable<Dictionary<string, object?>> envelopes, Func<Dictionary<string, object?>, DateTimeOffset?>? waterMark = null)
+        {
+            throw new NotImplementedException();
         }
     }
 }

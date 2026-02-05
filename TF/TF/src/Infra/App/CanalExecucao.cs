@@ -1,3 +1,8 @@
+using TF.src.Infra.Armazenagem;
+using TF.src.Infra.Configuracoes;
+using TF.src.Infra.Processamento;
+using TF.src.Infra.Upload;
+
 namespace TF.src.Infra.App
 {
     public class CanalExecucao(

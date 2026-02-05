@@ -1,3 +1,5 @@
+using TF.src.Infra.Autenticacao;
+
 namespace TF.src.Infra.Armazenagem
 {
     public class GerenciadorArmazenagemToken(IArmazenagemToken memoria, IArmazenagemToken json) : IArmazenagemToken

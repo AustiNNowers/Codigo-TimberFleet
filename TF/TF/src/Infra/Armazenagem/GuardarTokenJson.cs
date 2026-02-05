@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using TF.src.Infra.Autenticacao;
 
 namespace TF.src.Infra.Armazenagem
 {

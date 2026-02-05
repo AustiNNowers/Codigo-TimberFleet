@@ -1,4 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
+using TF.src.Infra.Configuracoes;
+using TF.src.Infra.Politica;
 
 namespace TF.src.Infra.Autenticacao
 {
@@ -39,9 +42,9 @@ namespace TF.src.Infra.Autenticacao
         private bool TokenValido(TokenInfo? t)
         {
             if (t is null) return false;
-            if (string.IsNullOrWhiteSpace(t.Token) || string.IsNullOrWhiteSpace(t.Expiracao)) return false;
+            if (string.IsNullOrWhiteSpace(t.Token)) return false;
 
-            if (!DateTime.TryParse(t.Expiracao, CultureInfo.InvariantCulture,
+            if (!DateTime.TryParse(t.Expiracao.ToString("O"), CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var exp))
                 return false;
 
@@ -77,14 +80,14 @@ namespace TF.src.Infra.Autenticacao
             resposta.EnsureSuccessStatusCode();
             _log.Info("[Auth] Requisição com sucesso");
 
-            var dataExpiracao = DateTime.Now.AddDays(1).Subtract(TimeSpan.FromHours(-1));
+            DateTime dataExpiracao = DateTime.Now.AddDays(1).Subtract(TimeSpan.FromHours(-1));
 
             using var stream = await resposta.Content.ReadAsStreamAsync(comando);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: comando);
 
             var acesso = doc.RootElement.GetProperty("access_token").GetString() ?? "";
 
-            await _armazenar.SalvarToken(new TokenInfo(acesso, dataExpiracao.ToString("O")), comando);
+            await _armazenar.SalvarToken(new TokenInfo(acesso, dataExpiracao), comando);
             _log.Info("[Auth] Token salvo");
         }
     }

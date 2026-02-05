@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using TF.src.Infra.ValidacaoArquivos;
 
 var comando = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
@@ -57,7 +58,7 @@ Console.WriteLine();
 
 try
 {
-    scripts = await Aferidor.Construir(caminho, paralelos, comando: comando.Token);
+    var scripts = await Aferidor.Construir(caminho, paralelos, comando: comando.Token);
 
     scripts.Logger.Info("Começando a executar os trabalhos...");
 
@@ -104,9 +105,6 @@ try
         }
         quantidadeLoops++;
     }
-    
-    using var stream = await resposta.Content.ReadAsStreamAsync(comando);
-    using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: comando);
 
     scripts.Logger.Info($"Loop terminou, finalizado com total de {quantidadeLoops} loops!");
 }

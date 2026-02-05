@@ -1,3 +1,5 @@
+using TF.src.Infra.Modelo;
+
 namespace TF.src.Infra.Coletor
 {
     public interface IColetorDados

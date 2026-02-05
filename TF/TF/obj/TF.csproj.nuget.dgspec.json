@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\LUIS.BRANCO\\TimberFleet Reformulado\\TF\\TF\\TF.csproj": {}
+    "C:\\Users\\LUIS.BRANCO\\Documents\\GitHub\\Codigo-TimberFleet\\TF\\TF\\TF.csproj": {}
   },
   "projects": {
-    "C:\\Users\\LUIS.BRANCO\\TimberFleet Reformulado\\TF\\TF\\TF.csproj": {
+    "C:\\Users\\LUIS.BRANCO\\Documents\\GitHub\\Codigo-TimberFleet\\TF\\TF\\TF.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\LUIS.BRANCO\\TimberFleet Reformulado\\TF\\TF\\TF.csproj",
+        "projectUniqueName": "C:\\Users\\LUIS.BRANCO\\Documents\\GitHub\\Codigo-TimberFleet\\TF\\TF\\TF.csproj",
         "projectName": "TF",
-        "projectPath": "C:\\Users\\LUIS.BRANCO\\TimberFleet Reformulado\\TF\\TF\\TF.csproj",
+        "projectPath": "C:\\Users\\LUIS.BRANCO\\Documents\\GitHub\\Codigo-TimberFleet\\TF\\TF\\TF.csproj",
         "packagesPath": "C:\\Users\\LUIS.BRANCO\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\LUIS.BRANCO\\TimberFleet Reformulado\\TF\\TF\\obj\\",
+        "outputPath": "C:\\Users\\LUIS.BRANCO\\Documents\\GitHub\\Codigo-TimberFleet\\TF\\TF\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\LUIS.BRANCO\\AppData\\Roaming\\NuGet\\NuGet.Config"

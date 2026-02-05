@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace TF.src.Infra.Logging
 {
     public class ConsoleLogger : IConsoleLogger
@@ -41,7 +43,7 @@ namespace TF.src.Infra.Logging
 
                         File.AppendAllText(caminhoArquivo, logBuilder.ToString());                    
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         Console.Error.WriteLine($"FALHA AO GRAVAR LOG EM ARQUIVO: {ex.Message}");
                     }

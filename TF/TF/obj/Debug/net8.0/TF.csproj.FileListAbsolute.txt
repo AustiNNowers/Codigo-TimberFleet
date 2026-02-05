@@ -52,3 +52,13 @@ C:\Users\LUIS.BRANCO\TimberFleet Reformulado\TF\TF\bin\Debug\net8.0\publish-rele
 C:\Users\LUIS.BRANCO\TimberFleet Reformulado\TF\TF\bin\Debug\net8.0\publish-release\configuracoes.json
 C:\Users\LUIS.BRANCO\TimberFleet Reformulado\TF\TF\bin\Debug\net8.0\publish-release\TF.deps.json
 C:\Users\LUIS.BRANCO\TimberFleet Reformulado\TF\TF\bin\Debug\net8.0\publish-release\TF.runtimeconfig.json
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.csproj.AssemblyReference.cache
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.AssemblyInfoInputs.cache
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.AssemblyInfo.cs
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.csproj.CoreCompileInputs.cache
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.sourcelink.json
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.dll
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\refint\TF.dll
+C:\Users\LUIS.BRANCO\Documents\GitHub\Codigo-TimberFleet\TF\TF\obj\Debug\net8.0\TF.pdb

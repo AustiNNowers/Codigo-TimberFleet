@@ -1,6 +1,8 @@
+using TF.src.Infra.Logging;
+
 namespace TF.src.Infra.App.Agendadores
 {
-    public class AgendadorImediato(int paralelos, IConsoleLogger log = null) : IAgendadorTabela
+    public class AgendadorImediato(int paralelos, IConsoleLogger log) : IAgendadorTabela
     {
         private readonly int _paralelos = Math.Max(1, paralelos);
         private readonly IConsoleLogger _log = log;

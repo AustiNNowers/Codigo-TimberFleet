@@ -1,6 +1,10 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using TF.src.Infra.Autenticacao;
+using TF.src.Infra.Modelo;
+using TF.src.Infra.Politica;
+using TF.src.Infra.Processamento;
 
 namespace TF.src.Infra.Coletor
 {
@@ -12,8 +16,8 @@ namespace TF.src.Infra.Coletor
         TimeSpan intervalo,
         string urlBase,
         IReadOnlyDictionary<string, string> headers,
-        TimeSpan? tamanhoJanelaBusca = null,
-        TimeSpan? margemVerificacao = null
+        TimeSpan tamanhoJanelaBusca,
+        TimeSpan margemVerificacao
     ) : IColetorDados
     {
         private readonly JsonSerializerOptions _opcoesSerializer = new()
@@ -33,8 +37,8 @@ namespace TF.src.Infra.Coletor
         private readonly IProvedorToken _provedorToken = provedorToken;
         private readonly IConsoleLogger _log = log;
         private readonly TimeSpan _intervalo = intervalo;
-        private readonly TimeSpan _tamanhoJanelaBusca;
-        private readonly TimeSpan _margemVerificacaoD;
+        private readonly TimeSpan _tamanhoJanelaBusca = tamanhoJanelaBusca;
+        private readonly TimeSpan _margemVerificacaoD = margemVerificacao;
         private readonly SemaphoreSlim _gate = new(1, 1);
         private readonly string _urlBase = urlBase;
         private readonly IReadOnlyDictionary<string, string> _headers = headers;
@@ -112,7 +116,7 @@ namespace TF.src.Infra.Coletor
                 if (!TentarPegarArray(doc.RootElement, out var arr))
                 {
                     _log.Aviso("[ApiCliente] Resposta vinda não é um aray e nem contém 'data'/'items'");
-                    _log.Info($"[ApiCliente] A informação veio dessa maneira: {json}");
+                    _log.Info($"[ApiCliente] A informação veio dessa maneira: {arr}");
                     dataInicio += _tamanhoJanelaBusca;
                     continue;
                 }
@@ -152,7 +156,7 @@ namespace TF.src.Infra.Coletor
 
         private static DateTimeOffset NormalizarData(DateTimeOffset data)
         {
-            return new DateTimeOffset(data.AddHours(-data.Hour).AddMinutes(-data.Minute).AddSeconds(-data.Second));
+            return new DateTimeOffset(data.Year, data.Month, data.Day, 0, 0, 0, data.Offset);
         }
 
         private static bool TentarPegarArray(JsonElement root, out JsonElement arr)
