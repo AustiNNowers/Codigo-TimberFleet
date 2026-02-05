@@ -21,10 +21,10 @@ namespace TF.src.Infra.Armazenagem
                 var root = JsonNode.Parse(json) as JsonObject;
                 var informacao = root?["Informacoes_Token"] as JsonObject;
 
-                var token = informacao["Token"]?.GetValue<string>();
+                var token = informacao["Token"]?.GetValue<string>() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(token)) return null;
 
-                string dataExpiracao = informacao["Data_Expiracao"]?.GetValue<string>() ?? string.Empty;
+                DateTime dataExpiracao = informacao["Data_Expiracao"]?.GetValue<DateTime>() ?? new DateTime(2025, 01, 01, 00, 00, 00);
 
                 return new TokenInfo(token, dataExpiracao);
             }

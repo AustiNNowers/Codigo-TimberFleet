@@ -9,8 +9,6 @@ namespace TF.src.Infra.Lote
     {
         private readonly int _maximoLinhas = Math.Max(1, maximoLinhas);
         private readonly long _maximoBytes = Math.Max(1024, maximoBytes);
-        private static readonly byte _newLine = (byte)'\n';
-
         private readonly JsonSerializerOptions _opcoes = new()
         {
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

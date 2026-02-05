@@ -1,3 +1,5 @@
+using TF.src.Infra.Modelo;
+
 namespace TF.src.Infra.Processamento.Payloads
 {
     public static class ProducaoPayload
@@ -7,20 +9,20 @@ namespace TF.src.Infra.Processamento.Payloads
             envelope = new();
             var ex = linha.CamposExtras ?? new();
 
-            var vehicleName  = Clean(GetStr(ex, "vehicle_desc") ?? GetStr(ex, "vehicle_name"));
-            var operatorName = GetStr(ex, "operator_name");
-            var equipDate    = GetStr(ex, "equip_date");
+            var vehicleName  = PayloadsUtilitario.Clean(PayloadsUtilitario.GetStr(ex, "vehicle_desc") ?? PayloadsUtilitario.GetStr(ex, "vehicle_name"));
+            var operatorName = PayloadsUtilitario.GetStr(ex, "operator_name");
+            var equipDate    = PayloadsUtilitario.GetStr(ex, "equip_date");
 
             var dados = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             {
-                ["id_ident"]         = JoinId(vehicleName, operatorName, equipDate),
-                ["tipo_arquivo"]     = GetStr(ex, "file_type"),
+                ["id_ident"]         = PayloadsUtilitario.JoinId(vehicleName, operatorName, equipDate),
+                ["tipo_arquivo"]     = PayloadsUtilitario.GetStr(ex, "file_type"),
                 ["prefixo"]          = (vehicleName ?? "").Replace("VT-", "", StringComparison.OrdinalIgnoreCase).Trim(),
                 ["nome_operador"]    = operatorName,
-                ["data_producao"]    = FmtDate(equipDate),
-                ["contagem_arvores"] = GetInt(ex, "tree_amount"),
-                ["volume_total"]     = GetDouble(ex, "volume_total"),
-                ["data_registro"]    = FmtDate(equipDate, "sim")
+                ["data_producao"]    = PayloadsUtilitario.FmtDate(equipDate),
+                ["contagem_arvores"] = PayloadsUtilitario.GetInt(ex, "tree_amount"),
+                ["volume_total"]     = PayloadsUtilitario.GetDouble(ex, "volume_total"),
+                ["data_registro"]    = PayloadsUtilitario.FmtDate(equipDate, "sim")
             };
 
             envelope["tabela"] = "TimberFleet_Producao";

@@ -5,6 +5,7 @@ using TF.src.Infra.Logging;
 using TF.src.Infra.Processamento;
 using TF.src.Infra.Upload;
 using TF.src.Infra.Coletor;
+using TF.src.Infra.App.Agendadores;
 
 namespace TF.src.Infra.App
 {

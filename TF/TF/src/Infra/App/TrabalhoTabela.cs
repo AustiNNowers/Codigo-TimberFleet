@@ -1,11 +1,20 @@
 using System.Globalization;
 using System.Threading.Channels;
+using TF.src.Infra.Processamento.Payloads;
+using TF.src.Infra.Logging;
+using TF.src.Infra.Upload;
+using TF.src.Infra.Processamento;
+using TF.src.Infra.Coletor;
+using TF.src.Infra.Armazenagem;
+using TF.src.Infra.Configuracoes;
+using TF.src.Infra.Lote;
+using TF.src.Infra.Modelo;
 
 namespace TF.src.Infra.App
 {
     public class TrabalhoTabela(
         string tabelaChave, TabelaMeta config, IGuardarDados guardarDados, IColetorDados coletor, ITransformarDados transformar, ILoteador loteador,
-        IUploader uploader, IConsoleLogger log, int bufferLinhasPre = 3000
+        IUploader uploader, IConsoleLogger log, int bufferLinhasPre = 3000, CancellationToken comando = default
         )
     {
         private readonly string _tabelaChave = tabelaChave;
@@ -24,11 +33,11 @@ namespace TF.src.Infra.App
             _log.Info($"[Trabalho Atual: {_tabelaChave}] Iniciando...");
 
             string? cursorIso = await _guardarDados.ObterDados(_tabelaChave, comando);
-            DateTime cursorData;
+            DateTimeOffset cursorData;
 
             if (string.IsNullOrWhiteSpace(cursorIso) || !Utilidades.TentarPegarData(cursorIso, out cursorData))
             {
-                if (!string.IsNullOrWhiteSpace(_config.UltimaAtualizacao) && Utilidades.TentarPegarData(_config.UltimaAtualizacao, out var configData))
+                if (Utilidades.TentarPegarData(_config.UltimaAtualizacao.ToString(), out var configData))
                 {
                     cursorData = configData;
                     _log.Info($"[Trabalho atual: {_tabelaChave}] Usando cursor da config: '{cursorData:O}'.");
@@ -57,12 +66,12 @@ namespace TF.src.Infra.App
             _log.Info($"[Trabalho Atual: {_tabelaChave}] Canais de Execução da Tabela foi finalizado com sucesso!");
         }
 
-        private async Task ProduzirDados(ChannelWriter<(List<ApiLinha>, DateTime?)> escritor, DateTime cursorInicial, CancellationToken token)
+        private async Task ProduzirDados(ChannelWriter<(List<ApiLinha>, DateTime?)> escritor, DateTimeOffset cursorInicial, CancellationToken token)
         {
             try
             {
                 var buffer = new List<ApiLinha>(_bufferLinhasPre);
-                DateTime maiorData = cursorInicial;
+                DateTime? maiorData = cursorInicial.UtcDateTime;
                 bool teveAtualizacao = false;
 
                 int totalLinhas = 0, totalLotesDespachados = 0;
@@ -80,7 +89,7 @@ namespace TF.src.Infra.App
                     if (!string.IsNullOrWhiteSpace(linha.UpdatedAtIso) && Utilidades.TentarPegarData(linha.UpdatedAtIso, out var luai))
                         if (luai > maiorData)
                         {
-                            maiorData = luai;
+                            maiorData = luai.UtcDateTime;
                             teveAtualizacao = true;
                         }
 
@@ -98,15 +107,15 @@ namespace TF.src.Infra.App
                     }
                 }
 
-                if (bufferLinhas.Count > 0)
+                if (buffer.Count > 0)
                 {
-                    await escritor.WriteAsync((pacote, teveAtualizacao ? maiorData : null), comando);
+                    await escritor.WriteAsync((buffer, teveAtualizacao ? maiorData : null), comando);
                 }
 
                 escritor.Complete();
-                _log.Info($"[Trabalho Atual: {_tabelaChave}] Concluído. Linhas totais: {totalLinhas} | Lotes totais: {totalLotes} | Nova Data Cursor: {maiorIsoVista ?? "Sem alteração"}");
+                _log.Info($"[Trabalho Atual: {_tabelaChave}] Concluído. Linhas totais: {totalLinhas} | Lotes totais: {totalLotesDespachados} | Nova Data Cursor: {(maiorData == null ? "Sem alteração" : maiorData)}");
             }
-            catch
+            catch (Exception ex)
             {
                 _log.Erro($"[Produtor {_tabelaChave}] Falha no download: {ex.Message}");
                 escritor.Complete(ex);

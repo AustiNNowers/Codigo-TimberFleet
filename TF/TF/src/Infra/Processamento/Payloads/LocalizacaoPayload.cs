@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
+using TF.src.Infra.Modelo;
 
 namespace TF.src.Infra.Processamento.Payloads
 {
@@ -9,15 +11,15 @@ namespace TF.src.Infra.Processamento.Payloads
             envelope = new();
             var ex = linha.CamposExtras ?? new();
 
-            var vehicleDesc = Clean(GetStr(ex, "vehicle_desc") ?? GetStr(ex, "vehicle_name"));
-            var operatorName = GetStr(ex, "operator_name");
-            var equipDate    = GetStr(ex, "equip_date");
-            var status       = GetStr(ex, "status_desc");
+            var vehicleDesc = PayloadsUtilitario.Clean(PayloadsUtilitario.GetStr(ex, "vehicle_desc") ?? PayloadsUtilitario.GetStr(ex, "vehicle_name"));
+            var operatorName = PayloadsUtilitario.GetStr(ex, "operator_name");
+            var equipDate    = PayloadsUtilitario.GetStr(ex, "equip_date");
+            var status       = PayloadsUtilitario.GetStr(ex, "status_desc");
 
-            double? lat = GetDouble(ex, "latitude");
-            double? lon = GetDouble(ex, "longitude");
+            double? lat = PayloadsUtilitario.GetDouble(ex, "latitude");
+            double? lon = PayloadsUtilitario.GetDouble(ex, "longitude");
             
-            if ((lat is null || lon is null) && GetStr(ex, "latlon") is string latlon && !string.IsNullOrWhiteSpace(latlon))
+            if ((lat is null || lon is null) && PayloadsUtilitario.GetStr(ex, "latlon") is string latlon && !string.IsNullOrWhiteSpace(latlon))
             {
                 var m = Regex.Matches(latlon, @"[-+]?\d+(?:[.,]\d+)?");
                 if (m.Count >= 2)
@@ -36,14 +38,14 @@ namespace TF.src.Infra.Processamento.Payloads
 
             var dados = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             {
-                ["id_ident"]         = JoinId(vehicleDesc, operatorName, equipDate),
+                ["id_ident"]         = PayloadsUtilitario.JoinId(vehicleDesc, operatorName, equipDate),
                 ["nome_operador"]    = operatorName,
                 ["prefixo"]          = (vehicleDesc ?? "").Replace("VT-", "", StringComparison.OrdinalIgnoreCase).Trim(),
-                ["data_localizacao"] = FmtDate(equipDate),
+                ["data_localizacao"] = PayloadsUtilitario.FmtDate(equipDate),
                 ["latitude"]         = lat,
                 ["longitude"]        = lon,
                 ["operacao_status"]  = status,
-                ["data_registro"]    = FmtDate(equipDate, "sim")
+                ["data_registro"]    = PayloadsUtilitario.FmtDate(equipDate, "sim")
             };
 
             envelope["tabela"] = "TimberFleet_Localizacao";

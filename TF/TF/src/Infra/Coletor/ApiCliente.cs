@@ -111,7 +111,7 @@ namespace TF.src.Infra.Coletor
                 using var stream = await resposta.Content.ReadAsStreamAsync(comando);
                 using var doc = await JsonDocument.ParseAsync(stream, _opcoesDocument, comando);
 
-                _log.SalvarLogs(stream, "ApiCliente_" + urlFinal.Replace("?", "") + "_" + DateTime.UtcNow.ToString().Replace("/", "-").Replace(":", "-"));
+                _log.SalvarLogs(stream.ToString(), "ApiCliente_" + urlFinal.Replace("?", "") + "_" + DateTime.UtcNow.ToString().Replace("/", "-").Replace(":", "-"));
                 _log.Info($"[ApiCliente] Conexão foi feita com sucesso! Codigo de retorno: {resposta.StatusCode} | Resposta de Retorno: {resposta.Content}");
 
                 if (!TentarPegarArray(doc.RootElement, out var arr))

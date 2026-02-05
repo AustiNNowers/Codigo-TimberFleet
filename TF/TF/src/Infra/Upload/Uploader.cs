@@ -25,7 +25,7 @@ namespace TF.src.Infra.Upload
             _log.Info("[Uploader] Iniciando requisição de entrega dos dados...");
             _log.Info($"[Uploader] Enviando Lote: {lote.Quantidade} linhas | " +
                       $"Tamanho: {lote.TamanhoBytes} bytes (Gzip) | " +
-                      $"Range: {lote.DataInicio ?? "?"} até {lote.DataFim ?? "?"}");
+                      $"Range: {lote.DataInicio} até {lote.DataFim}");
             
             using var resposta = await PoliticaRetentativa.ExecutarNovamenteRequisicao(
                     _http, () => CriarRequisicao(lote),
@@ -47,11 +47,6 @@ namespace TF.src.Infra.Upload
             }
 
             _log.Info($"[Uploader] Enviado com sucesso | Total de linhas={lote.Quantidade} - Peso gzip={lote.TamanhoBytes} bytes");
-        }
-
-        public Task UploadPhp(LoteadorPayload lote, CancellationToken comando = default)
-        {
-            throw new NotImplementedException();
         }
 
         private HttpRequestMessage CriarRequisicao(LoteadorPayload lote)

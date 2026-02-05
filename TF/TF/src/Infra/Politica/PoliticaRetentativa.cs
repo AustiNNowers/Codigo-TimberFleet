@@ -63,7 +63,7 @@ namespace TF.src.Infra.Politica
             var fator = Math.Pow(2, tentativa - 1);
             var jitter = Random.Shared.Next(0, 250);
 
-            var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * fator) + jitter;
+            var delay = TimeSpan.FromMilliseconds((baseDelay.TotalMilliseconds * fator) + jitter);
 
             var max = TimeSpan.FromSeconds(30);
             return delay > max ? max : delay;

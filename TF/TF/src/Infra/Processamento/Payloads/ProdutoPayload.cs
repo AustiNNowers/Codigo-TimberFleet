@@ -1,3 +1,5 @@
+using TF.src.Infra.Modelo;
+
 namespace TF.src.Infra.Processamento.Payloads
 {
     public static class ProdutoPayload
@@ -7,20 +9,20 @@ namespace TF.src.Infra.Processamento.Payloads
             envelope = new();
             var ex = linha.CamposExtras ?? new();
 
-            var vehicleName = Clean(GetStr(ex, "vehicle_desc") ?? GetStr(ex, "vehicle_name"));
-            var equipDate   = GetStr(ex, "equip_date");
+            var vehicleName = PayloadsUtilitario.Clean(PayloadsUtilitario.GetStr(ex, "vehicle_desc") ?? PayloadsUtilitario.GetStr(ex, "vehicle_name"));
+            var equipDate   = PayloadsUtilitario.GetStr(ex, "equip_date");
 
             var dados = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             {
-                ["id_ident"]           = JoinId(vehicleName, null, equipDate),
+                ["id_ident"]           = PayloadsUtilitario.JoinId(vehicleName, null, equipDate),
                 ["prefixo"]            = (vehicleName ?? "").Replace("VT-", "", StringComparison.OrdinalIgnoreCase).Trim(),
-                ["data_producao"]      = FmtDate(equipDate),
-                ["quantidade_toras"]   = GetInt(ex, "amount"),
-                ["volume_toras"]       = GetDouble(ex, "volume"),
-                ["comprimento_minimo"] = GetInt(ex, "min_length"),
-                ["comprimento_maximo"] = GetInt(ex, "max_length"),
-                ["comprimento_medio"]  = GetDouble(ex, "avg_length"),
-                ["data_registro"]      = FmtDate(equipDate, "sim")
+                ["data_producao"]      = PayloadsUtilitario.FmtDate(equipDate),
+                ["quantidade_toras"]   = PayloadsUtilitario.GetInt(ex, "amount"),
+                ["volume_toras"]       = PayloadsUtilitario.GetDouble(ex, "volume"),
+                ["comprimento_minimo"] = PayloadsUtilitario.GetInt(ex, "min_length"),
+                ["comprimento_maximo"] = PayloadsUtilitario.GetInt(ex, "max_length"),
+                ["comprimento_medio"]  = PayloadsUtilitario.GetDouble(ex, "avg_length"),
+                ["data_registro"]      = PayloadsUtilitario.FmtDate(equipDate, "sim")
             };
 
             envelope["tabela"] = "TimberFleet_Produtos_producao";

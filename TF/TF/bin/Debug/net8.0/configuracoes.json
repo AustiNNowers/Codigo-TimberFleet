@@ -25,34 +25,34 @@
     "Data_Expiracao": "31/12/2025 12:48:46"
   },
   "Tabelas": {
-    "Apontamento": {
-      "Nome_Tabela": "TimberFleet_Apontamentos",
-      "Url_Final": "notes?",
-      "UltimaAtualizacao": "2025-01-01T00:00:00.0000000\u002B00:00",
-      "TabelaAtiva": true
-    },
     "Producao": {
       "Nome_Tabela": "TimberFleet_Producao",
       "Url_Final": "new_production?",
-      "UltimaAtualizacao": "2025-12-30T15:50:03.0000000\u002B00:00",
-      "TabelaAtiva": false
+      "UltimaAtualizacao": "01/01/2025 00:00:00",
+      "TabelaAtiva": true
     },
     "Contadores": {
       "Nome_Tabela": "TimberFleet_Contadores",
       "Url_Final": "counters?",
-      "UltimaAtualizacao": "2025-12-20T06:44:09.0000000\u002B00:00",
-      "TabelaAtiva": false
+      "UltimaAtualizacao": "01/01/2025 00:00:00",
+      "TabelaAtiva": true
+    },
+    "Apontamento": {
+      "Nome_Tabela": "TimberFleet_Apontamentos",
+      "Url_Final": "notes?",
+      "UltimaAtualizacao": "01/01/2025 00:00:00",
+      "TabelaAtiva": true
     },
     "Localizacao": {
       "Nome_Tabela": "TimberFleet_Localizacao",
       "Url_Final": "points?",
-      "UltimaAtualizacao": "2025-01-01T00:00:00.0000000\u002B00:00",
-      "TabelaAtiva": false
+      "UltimaAtualizacao": "01/01/2025 00:00:00",
+      "TabelaAtiva": true
     },
     "Produto": {
       "Nome_Tabela": "TimberFleet_Produtos",
       "Url_Final": "new_production_products?",
-      "UltimaAtualizacao": "2025-08-20T04:31:05.0000000\u002B00:00",
+      "UltimaAtualizacao": "01/01/2025 00:00:00",
       "TabelaAtiva": false
     }
   }
